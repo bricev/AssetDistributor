@@ -4,8 +4,10 @@ PHP AssetDistribution component
 PHP component that uploads and manage asset from remote social/content provider. 
 
 Currently handle video for YouTube.
+The component could easily handle video for Vimeo, Dailymotion, Metacafé... but also
+documents for SlideShare, Scribd, or audio for SoundCloud.
 
-Please be free to integrate other asset/providers (Vimeo, Scribd, SoundCloud...) 
+Please feel free to integrate other asset/providers :)
 
 Vocabulary:
 
@@ -15,13 +17,14 @@ Vocabulary:
     management.
 
   * `Provider` are composed of `Credentials` and a `Manager`. Providers also store
-    settings (static metadata such as webservice endpoints) and parameters (user 
+    settings (static metadata such as webservice endpoints) and parameters (session 
     dependant informations such as authentication token). 
 
-    When serialized, provider objects describe all parameters (settings should be 
+    When serialized, provider objects register all parameters (settings should be 
     statically described inside their specialized class or coming from a setter
     so they can't be persisted eg. \Libcast\AssetDistribution\Provider\YoutubeProvider).
-    This way, `Provider` objects can be persisted for future use.
+    This way, `Provider` objects can be persisted with anything but the required data
+    for future use.
 
   * `ProviderCollection` serializable collection of `Provider` objects.
 
