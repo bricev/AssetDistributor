@@ -1,5 +1,5 @@
 {
-    "name": "libcast/externalmedia",
+    "name": "libcast/assetdistribution",
     "type": "library",
     "description": "PHP component that uploads and manage media from remote social/content platform. Currently handle video for YouTube.",
     "homepage": "http://libcast.com",
