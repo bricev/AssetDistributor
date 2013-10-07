@@ -1,0 +1,16 @@
+{
+    "name": "libcast/externalmedia",
+    "type": "library",
+    "description": "PHP component that uploads and manage media from remote social/content platform. Currently handle video for YouTube.",
+    "homepage": "http://libcast.com",
+    "license": "MIT",
+    "require": {
+        "php": ">=5.3.0"
+    },
+    "require-dev": {
+        "monolog/monolog": "1.4.0"
+    },
+    "autoload": {
+        "psr-0": {"Libcast": "src/"}
+    }
+}
