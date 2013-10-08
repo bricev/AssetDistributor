@@ -181,16 +181,15 @@ $provider->authenticate();
 If you have persisted a `Provider` or already may have authenticate in your script,
 and need to check if authentication is required again, you can use the
 `$provider->isAuthorized()` method.
->>>>>>> parent of 9455aa2... Revert "update doc"
 
-API
----
+
+API and tests
+-------------
 
 Generate the API doc:
 
-    php vendor/sami/sami/sami.php update config/sami.php
+    php vendor/bin/sami.php update config/sami.php
 
 Run tests
----------
 
     php vendor/bin/phpunit
