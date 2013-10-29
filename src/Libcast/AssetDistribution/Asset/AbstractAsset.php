@@ -17,7 +17,9 @@ use Libcast\AssetDistribution\Provider\ProviderCollection;
 abstract class AbstractAsset implements \Serializable
 {
     const VISIBILITY_VISIBLE = 'visible';
+
     const VISIBILITY_HIDDEN  = 'hidden';
+
     const VISIBILITY_PRIVATE = 'private';
 
     /**
@@ -64,7 +66,7 @@ abstract class AbstractAsset implements \Serializable
      * @param  LoggerInterface              $logger    Psr logger
      * @throws \Exception
      */
-    public function __construct($path = null, &$providers = null, \Psr\Log\LoggerInterface $logger = null) 
+    public function __construct($path = null, $providers = null, \Psr\Log\LoggerInterface $logger = null) 
     {
         $this->setPath($path);
 
@@ -153,7 +155,7 @@ abstract class AbstractAsset implements \Serializable
         foreach ($collection as $provider) {
             $this->addProvider($provider);
         }
-        
+
         return $this;
     }
 
@@ -345,12 +347,6 @@ abstract class AbstractAsset implements \Serializable
      */
     public function serialize()
     {
-        // wrap all providers into a collection
-        $collection = new ProviderCollection;
-        foreach ($this->getProviders() as $provider) {
-            $collection[] = $provider;
-        }
-
         return serialize(array(
             'path'         => $this->path,
             'parameters'   => $this->getParameters(),

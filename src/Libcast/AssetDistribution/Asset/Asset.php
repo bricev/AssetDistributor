@@ -33,7 +33,7 @@ class Asset
      * @return \Libcast\AssetDistribution\Asset\AssetInterface
      * @throws \Exception
      */
-    public static function load($path, &$provider = null, LoggerInterface $logger = null)
+    public static function load($path, $provider = null, LoggerInterface $logger = null)
     {
         if (!file_exists($path) || !filesize($path)) {
             throw new \Exception("File '$path' does not exists.");
