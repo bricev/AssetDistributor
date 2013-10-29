@@ -16,7 +16,9 @@ use Libcast\AssetDistribution\Provider\ProviderInterface;
 abstract class AbstractCredentials
 {
     const STATUS_LOGGED_OUT = 'logged_out';
+
     const STATUS_LOGGED_IN  = 'logged_in';
+
     const STATUS_ERROR      = 'error';
 
     /**
