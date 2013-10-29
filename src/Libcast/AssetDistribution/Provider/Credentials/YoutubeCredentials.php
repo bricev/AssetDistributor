@@ -19,8 +19,11 @@ use Libcast\AssetDistribution\Request\HttpRequest;
 class YoutubeCredentials extends AbstractCredentials implements CredentialsInterface
 {
     const STATUS_APPROVED        = 'approved';
+
     const STATUS_FIRST_LOGIN     = 'first_login';
+
     const STATUS_LOGIN_REFRESHED = 'refreshed';
+
     const STATUS_LOGIN_SESSION   = 'session_login';
 
     /**
@@ -83,6 +86,12 @@ class YoutubeCredentials extends AbstractCredentials implements CredentialsInter
                     return false;
                 }
 
+                if (isset($token['state']) && $id = $token['state']) {
+                    // use google oAuth `state` attribute to keep track of the
+                    // provider Id
+                    $provider->setId($id);
+                }
+
                 if (isset($token['access_token'])) {
                     $this->setAccessToken(
                             $token['access_token'], 
@@ -94,7 +103,7 @@ class YoutubeCredentials extends AbstractCredentials implements CredentialsInter
                 if (isset($token['refresh_token'])) {
                     $provider->log('YouTube refresh_token', $token['refresh_token']);
 
-                    $provider->setParameter('refresh_token', $token['refresh_token']);
+                    $this->setRefreshToken($token['refresh_token']);
 
                     $this->setStatus(self::STATUS_FIRST_LOGIN);
                 } else {
@@ -103,17 +112,17 @@ class YoutubeCredentials extends AbstractCredentials implements CredentialsInter
 
                 break;
 
-            case $provider->hasParameter('refresh_token'):
+            case $refresh_token = $this->getRefreshToken():
                 // use refresh_token to get a new access_token without user login
 
-                $provider->log('Youtube authentication: refresh auth', $provider->getParameter('refresh_token'));
+                $provider->log('Youtube authentication: refresh auth', $refresh_token);
 
                 $request = new CurlRequest($provider->getLogger());
                 $request->setUrl($provider->getSetting('token_url'))
                         ->setArguments(array(
                             'client_id'     => $provider->getSetting('client_id'),
                             'client_secret' => $provider->getSetting('client_secret'),
-                            'refresh_token' => $provider->getParameter('refresh_token'),
+                            'refresh_token' => $refresh_token,
                             'grant_type'    => 'refresh_token',
                         ))
                         ->post();
@@ -140,12 +149,13 @@ class YoutubeCredentials extends AbstractCredentials implements CredentialsInter
                 $provider->log('Youtube authentication', array('unauthenticated'));
 
                 $request = new HttpRequest($provider->getLogger());
-                $request->setUrl('%s?scope=%s&client_id=%s&redirect_uri=%s&response_type=code&access_type=offline')
+                $request->setUrl('%s?scope=%s&client_id=%s&redirect_uri=%s&response_type=code&access_type=offline&state=%s')
                         ->setArguments(array(
                             $provider->getSetting('authorize_url'),
                             $provider->getSetting('scope'),
                             $provider->getSetting('client_id'),
                             $provider->getSetting('redirect_uri'),
+                            $provider->getId(),
                         ))
                         ->redirect();
         }
@@ -162,17 +172,23 @@ class YoutubeCredentials extends AbstractCredentials implements CredentialsInter
      */
     protected function setAccessToken($token, $expires_in = 3600)
     {
-        $this->getProvider()->log('New access_token has been created.', array(
+        $provider = $this->getProvider(); /* @var $provider \Libcast\AssetDistribution\Provider\YoutubeProvider */
+
+        $id = $provider->getId();
+
+        $provider->log('New access_token has been created.', array(
             $token,
             $expires_in,
         ));
 
         $this->access_token = $token;
-        $_SESSION['youtube_access_token'] = $token;
+        $_SESSION["youtube_access_token_$id"] = $token;
+        $provider->log("Store token in PHP session as 'youtube_access_token_$id'");
 
         $expiration = time() + (int) $expires_in;
         $this->token_expiration_date = $expiration;
-        $_SESSION['youtube_token_expiration'] = $expiration;
+        $_SESSION["youtube_token_expiration_$id"] = $expiration;
+        $provider->log("Store token expiration in PHP session as 'youtube_token_expiration_$id'");
     }
 
     /**
@@ -182,14 +198,18 @@ class YoutubeCredentials extends AbstractCredentials implements CredentialsInter
      */
     public function getAccessToken()
     {
-        $expiration = isset($_SESSION['youtube_token_expiration']) ? 
-                $_SESSION['youtube_token_expiration'] : 
+        $provider = $this->getProvider(); /* @var $provider \Libcast\AssetDistribution\Provider\YoutubeProvider */
+
+        $id = $provider->getId();
+
+        $expiration = isset($_SESSION["youtube_token_expiration_$id"]) ? 
+                $_SESSION["youtube_token_expiration_$id"] : 
                 $this->token_expiration_date;
 
         if ($expiration && $expiration <= time()) {
             // token expired
 
-            $this->getProvider()->log('The token expired.', array(
+            $provider->log('The token expired.', array(
                 $this->access_token,
                 date('Y-m-d H:i:s', $expiration),
                 date('Y-m-d H:i:s'),
@@ -197,25 +217,74 @@ class YoutubeCredentials extends AbstractCredentials implements CredentialsInter
 
             // unset token
             $this->access_token = null;
-            unset($_SESSION['youtube_access_token']);
+            unset($_SESSION["youtube_access_token_$id"]);
 
             // unset expiration date
             $this->token_expiration_date = null;
-            unset($_SESSION['youtube_token_expiration']);
+            unset($_SESSION["youtube_token_expiration_$id"]);
 
             return null;
         }
 
         switch (true) {
             case $this->access_token:
+                $provider->log('Retrieve access token from class attribute');
                 $this->setStatus(self::STATUS_LOGGED_IN);
                 return $this->access_token;
 
-            case isset($_SESSION['youtube_access_token']):
+            case isset($_SESSION["youtube_access_token_$id"]):
+                $provider->log("Retrieve access token from PHP session 'youtube_access_token_$id'");
                 $this->setStatus(self::STATUS_LOGIN_SESSION);
-                return $this->access_token = $_SESSION['youtube_access_token'];
+                return $this->access_token = $_SESSION["youtube_access_token_$id"];
 
             default : 
+                $provider->log('Impossible to retrieve access token');
+                return null;
+        }
+    }
+
+    /**
+     * Store Google's oAuth refresh_token in both the class attribute and a PHP 
+     * session so that it can be used again later by the component.
+     * 
+     * @param string $token
+     */
+    protected function setRefreshToken($token)
+    {
+        $provider = $this->getProvider(); /* @var $provider \Libcast\AssetDistribution\Provider\YoutubeProvider */
+
+        $id = $provider->getId();
+
+        $provider->setParameter('refresh_token', $token);
+
+        $_SESSION["youtube_refresh_token_$id"] = $token;
+
+        $provider->log("Store refresh token in PHP session as 'youtube_refresh_token_$id'");
+    }
+
+    /**
+     * Return the access_token if exists or `null` otherwise.
+     * 
+     * @return string|null API refresh_token
+     */
+    public function getRefreshToken()
+    {
+        $provider = $this->getProvider(); /* @var $provider \Libcast\AssetDistribution\Provider\YoutubeProvider */
+
+        $id = $provider->getId();
+
+        switch (true) {
+            case $provider->hasParameter('refresh_token'):
+                $provider->log('Retrieve refresh token from provider parameters');
+                return $provider->getParameter('refresh_token');
+
+            case isset($_SESSION["youtube_refresh_token_$id"]):
+                $provider->log("Retrieve refresh token from PHP session 'youtube_refresh_token_$id'");
+                $provider->setParameter('refresh_token', $_SESSION["youtube_refresh_token_$id"]);
+                return $provider->getParameter('refresh_token');
+
+            default : 
+                $provider->log('Impossible to retrieve refresh token');
                 return null;
         }
     }

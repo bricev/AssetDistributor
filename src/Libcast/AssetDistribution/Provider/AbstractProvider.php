@@ -88,14 +88,14 @@ abstract class AbstractProvider implements \Serializable
         // add settings
         if (is_array($settings)) {
             $this->setSettings($settings);
-        } else if (is_string($settings)) {
+        } elseif (is_string($settings)) {
             $this->loadConfiguration($settings, 'settings');
         }
 
         // add parameters
         if (is_array($parameters)) {
             $this->setParameters($parameters);
-        } else if (is_string($parameters)) {
+        } elseif (is_string($parameters)) {
             $this->loadConfiguration($parameters, 'parameters');
         }
 
@@ -109,9 +109,9 @@ abstract class AbstractProvider implements \Serializable
      * @param string $id Identifier
      * @return \Libcast\AssetDistribution\Provider\ProviderInterface
      */
-    protected function setId($id)
+    public function setId($id)
     {
-        $this->is = $id;
+        $this->id = $id;
 
         return $this;
     }
@@ -123,7 +123,7 @@ abstract class AbstractProvider implements \Serializable
     {
         if (!$this->id) {
             // generate a uniq identifier
-            $this->id = uniqid();
+            $this->setId(uniqid());
         }
 
         return $this->id;
