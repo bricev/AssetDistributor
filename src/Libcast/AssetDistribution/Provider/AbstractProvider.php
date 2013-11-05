@@ -160,7 +160,7 @@ abstract class AbstractProvider implements \Serializable
      * @param string $value
      * @return \Libcast\AssetDistribution\Provider\ProviderInterface
      */
-    protected function setSetting($name, $value)
+    public function setSetting($name, $value)
     {
         $this->settings[$name] = $value;
 
@@ -172,7 +172,7 @@ abstract class AbstractProvider implements \Serializable
      * @param array $settings
      * @return \Libcast\AssetDistribution\Provider\ProviderInterface
      */
-    protected function setSettings($settings)
+    public function setSettings($settings)
     {
         $this->settings = array_merge($this->settings, $settings);
 
