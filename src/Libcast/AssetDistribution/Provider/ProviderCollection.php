@@ -22,17 +22,12 @@ class ProviderCollection implements \ArrayAccess, \Iterator, \Serializable
     private $providers = array();
 
     /**
-     * 
-     * @var integer
-     */
-    private $position = 0;
-
-    /**
      * Store Providers into a collection.
      * 
      * ProviderCollection objects can be accessed/traversed as an array.
      * Eg. $collection = new ProviderCollection;
      *     $collection[] = new YoutubeProviders($parameters);
+     *     $collection['youtube'] = new YoutubeProviders($parameters);
      * 
      * ProviderCollection objects are serializable so that a collection can 
      * easilly be stored in a database for future usage.
@@ -87,7 +82,7 @@ class ProviderCollection implements \ArrayAccess, \Iterator, \Serializable
      */
     function rewind()
     {
-        $this->position = 0;
+        return reset($this->providers);
     }
 
     /**
@@ -95,7 +90,7 @@ class ProviderCollection implements \ArrayAccess, \Iterator, \Serializable
      */
     function current()
     {
-        return $this->providers[$this->position];
+        return current($this->providers);
     }
 
     /**
@@ -103,7 +98,7 @@ class ProviderCollection implements \ArrayAccess, \Iterator, \Serializable
      */
     function key()
     {
-        return $this->position;
+        return key($this->providers);
     }
 
     /**
@@ -111,7 +106,7 @@ class ProviderCollection implements \ArrayAccess, \Iterator, \Serializable
      */
     function next()
     {
-        $this->position++;
+        return next($this->providers);
     }
 
     /**
@@ -119,7 +114,7 @@ class ProviderCollection implements \ArrayAccess, \Iterator, \Serializable
      */
     function valid()
     {
-        return isset($this->providers[$this->position]);
+        return null !== $this->key() && false !== $this->key();
     }
 
     /**
@@ -129,8 +124,8 @@ class ProviderCollection implements \ArrayAccess, \Iterator, \Serializable
     {
         $data = array();
 
-        foreach ($this->providers as $provider) {
-            $data[] = serialize($provider);
+        foreach ($this->providers as $key => $provider) {
+            $data[$key] = serialize($provider);
         }
 
         return serialize($data);
@@ -145,8 +140,8 @@ class ProviderCollection implements \ArrayAccess, \Iterator, \Serializable
             throw new \Exception('Error while unserializing data.');
         }
 
-        foreach ($providers as $provider) {
-            $this->offsetSet(null, unserialize($provider));
+        foreach ($providers as $key => $provider) {
+            $this->offsetSet($key, unserialize($provider));
         }
     }
 
