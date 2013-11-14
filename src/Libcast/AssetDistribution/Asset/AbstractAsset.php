@@ -13,6 +13,7 @@ namespace Libcast\AssetDistribution\Asset;
 
 use Libcast\AssetDistribution\Provider\ProviderInterface;
 use Libcast\AssetDistribution\Provider\ProviderCollection;
+use Libcast\AssetDistribution\Session;
 
 abstract class AbstractAsset implements \Serializable
 {
@@ -59,16 +60,31 @@ abstract class AbstractAsset implements \Serializable
     protected $logger;
 
     /**
+     *
+     * @var \Libcast\AssetDistribution\Session\Session
+     */
+    protected $session;
+
+    /**
      * Manage a digital asset across providers.
      * 
      * @param  string                       $path      File path
      * @param  Provider|ProviderCollection  $provider  Provider(s) to manage to file with.
      * @param  LoggerInterface              $logger    Psr logger
+     * @param  object                       $session   Session manager
      * @throws \Exception
      */
-    public function __construct($path = null, $providers = null, \Psr\Log\LoggerInterface $logger = null) 
+    public function __construct($path = null, $providers = null, \Psr\Log\LoggerInterface $logger = null, $session = null) 
     {
+        if ($logger) {
+            $this->setLogger($logger);
+        }
+
+        $this->setSession($session);
+
         $this->setPath($path);
+
+        $this->retrieve();
 
         if ($providers instanceof ProviderInterface) {
             // affiliate the single provider to the asset
@@ -79,10 +95,6 @@ abstract class AbstractAsset implements \Serializable
         } elseif (!is_null($providers)) {
             // a non provider-related object can't be associated with asset
             throw new \Exception('Only Provider or ProviderCollection objects may be associated.');
-        }
-
-        if ($logger) {
-            $this->setLogger($logger);
         }
     }
 
@@ -332,14 +344,111 @@ abstract class AbstractAsset implements \Serializable
 
     /**
      * 
+     * @param mixed $session
+     * @return \Libcast\AssetDistribution\Asset\AssetInterface
+     */
+    protected function setSession($session = null)
+    {
+        if (!$this->session) {
+            $this->session = Session::getInstance($session);
+        }
+
+        return $this;
+    }
+
+    /**
+     * 
+     * @return \Libcast\AssetDistribution\Session\Session
+     */
+    protected function getSession()
+    {
+        if (!$this->session) {
+            $this->setSession();
+        }
+
+        if ($this->session instanceof Session 
+                && session_status() !== PHP_SESSION_ACTIVE
+                && !$this->session->isStarted()) {
+            $this->session->start();
+        }
+
+        return $this->session;
+    }
+
+    /**
+     * 
      * @param LoggerInterface $logger
-     * @return \Libcast\AssetDistribution\Provider\ProviderInterface
+     * @return \Libcast\AssetDistribution\Asset\AssetInterface
      */
     public function setLogger(\Psr\Log\LoggerInterface $logger)
     {
         $this->logger = $logger;
 
         return $this;
+    }
+
+    /**
+     * Persists asset into session storage
+     *
+     * @return void
+     */
+    public function backup()
+    {
+        $session = $this->getSession();
+
+        $session->store('asset', $this, serialize($this));
+
+        $this->log("Asset '$this' backuped");
+    }
+
+    /**
+     * If a asset has been persisted into session storage, try to retrieve its 
+     * settings and parameters to merge them with the current object
+     * 
+     * @return void
+     */
+    public function retrieve()
+    {
+        $session = $this->getSession();
+
+        if (!$serialized = $session->retrieve('asset', $this)) {
+            $this->log("Asset '$this' was not backuped");
+            return;
+        }
+
+        $asset = unserialize($serialized);
+        if (!$asset instanceof AssetInterface) {
+            $this->log("Asset '$this' backup is corrupted", $serialized, 'error');
+            return;
+        }
+
+        $this->setPath($asset->getPath());
+        $this->setParameters($asset->getParameters());
+        $this->setVisibility($asset->getVisibility());
+
+        $this->log("Asset '$this' retrieved", array(
+            'path'        => $asset->getPath(),
+            'parametters' => $asset->getParameters(),
+            'visibility'  => $asset->getVisibility(),
+        ));
+    }
+
+    /**
+     * Logger proxy method.
+     * 
+     * @param string $message
+     * @param mixed  $context
+     * @param mixed  $level
+     */
+    public function log($message, $context = array(), $level = 'info')
+    {
+        if (!is_array($context)) {
+            $context = (array) $context;
+        }
+
+        if ($logger = $this->logger) {
+            $logger->$level($message, $context);
+        }
     }
 
     /**
@@ -371,24 +480,6 @@ abstract class AbstractAsset implements \Serializable
     }
 
     /**
-     * Logger proxy method.
-     * 
-     * @param string $message
-     * @param mixed  $context
-     * @param mixed  $level
-     */
-    public function log($message, $context = array(), $level = 'debug')
-    {
-        if (!is_array($context)) {
-            $context = (array) $context;
-        }
-
-        if ($logger = $this->logger) {
-            $logger->$level($message, $context);
-        }
-    }
-
-    /**
      * 
      * @return array List of manager methods
      */
@@ -409,7 +500,7 @@ abstract class AbstractAsset implements \Serializable
      * 
      * @param string $method Method called
      * @param array $arguments List of aguments to pass to the method
-     * @return void 
+     * @return \Libcast\AssetDistribution\Asset\AssetInterface
      * @throws \Exception
      */
     public function __call($method, $arguments)
@@ -419,40 +510,63 @@ abstract class AbstractAsset implements \Serializable
             throw new \Exception("Method '$method' can't be called on this object.");
         }
 
+        $session = $this->getSession();
+
+        // backup asset so that, if any provider need to get credentials and has
+        // to redirect, asset data will be saved
+        $this->backup();
+
+        // manage the asset with each provider's manager
         $n = 0;
-        $error = array();
         foreach ($this->getProviders() as $provider) {
+            // whether it works or not, we count how many managers the method has 
+            // been called on
+            $n++;
+
+            // if the asset has already managed by a provider (eg. after a 
+            // redirection due to authentication) then continue
+            if ($session->retrieve("$this/$method", $provider)) {
+                $this->log("Provider '$provider' has already called '$method'");
+                continue;
+            }
+
+            // connect provider (authenticate)
             $manager = $provider->getManager();
-            $manager->setAsset($this);
+            $manager->setAsset($this) 
+                    ->connect();
 
+            /* @var $manager \Libcast\AssetDistribution\Provider\Manager\AbstractManager */
+
+            // try to execute methode, ignore errors
             try {
-                $this->log("Call '$method' method on a {$provider->getName()} manager.", $arguments);
+                call_user_func_array(array($manager, $method), $arguments);
+            } catch (\Exception $exception) {
+                $this->log("Error calling '$method' method on the {$provider->getBrand()} provider '$provider'", $exception, 'error');
+            }
 
-                $return = call_user_func_array(array($manager, $method), $arguments);
+            $this->log("Provider '$provider' managed method '$method' successfully", $arguments);
 
-                $this->addProvider($provider); // this updates the provider
+            // list the asset as having been managed by this provider
+            $session->store("$this/$method", $provider);
 
-                $n++;
+            // backup asset so that, if any provider need to get credentials and has
+            // to redirect, asset data will be saved
+            $this->backup();
 
-                return $return;
-            } catch (\Exception $e) {
-                $this->log("Error calling '$method' method on a {$provider->getName()} manager.", $e, 'error');
-
-                $error[] = $e->getMessage();
-            }   
-        }
-
-        if ($error) {
-            throw new \Exception(implode(PHP_EOL, $error));
+            // disconnect to enable manage on multiple providers of a same 
+            // origine (same brand)
+            $manager->disconnect();
         }
 
         if (!$n) {
-            throw new \Exception("There is no provider on which to apply '$method'.");
+            throw new \Exception("There is no provider on which to apply '$method'");
         }
+
+        return $this;
     }
 
     public function __toString()
     {
-        return $this->serialize();
+        return $this->getPath();
     }
 }

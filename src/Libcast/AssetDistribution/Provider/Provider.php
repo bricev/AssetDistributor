@@ -20,17 +20,20 @@ class Provider
     /**
      * Load a provider - factory style.
      * 
-     * @param  mixed            $settings   List of settings or path to `.ini` config file
-     * @param  mixed            $parameters List of parameters or path to `.ini` config file
-     * @param  LoggerInterface  $logger     Psr logger
+     * @param  string           $name        Provider name
+     * @param  string           $id          Unique identifier
+     * @param  mixed            $settings    List of settings or path to `.ini` config file
+     * @param  mixed            $parameters  List of parameters or path to `.ini` config file
+     * @param  LoggerInterface  $logger      Psr logger
+     * @param  object           $session     Session manager
      * @return \Libcast\AssetDistribution\Provider\ProviderInterface
      * @throws \Exception
      */
-    public static function load($name, $settings = null, $parameters = null, \Psr\Log\LoggerInterface $logger = null)
+    public static function load($name, $id, $settings = null, $parameters = null, \Psr\Log\LoggerInterface $logger = null, $session = null)
     {
         switch ($name) {
             case self::YOUTUBE: 
-                return new YoutubeProvider($settings, $parameters, $logger);
+                return new YoutubeProvider($id, $settings, $parameters, $logger, $session);
 
             default : 
                 throw new \Exception("Provider '$name' is not yet supported.");
@@ -43,7 +46,7 @@ class Provider
      * 
      * @return array Return the list of all supported providers
      */
-    public static function getNames()
+    public static function getBrands()
     {
         return array(
             self::YOUTUBE,

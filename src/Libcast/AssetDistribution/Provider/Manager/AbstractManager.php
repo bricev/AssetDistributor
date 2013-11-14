@@ -209,4 +209,14 @@ abstract class AbstractManager
             $this->getProvider()->authenticate();
         }
     }
+
+    /**
+     * If the provider is authorized, try to logout the user
+     */
+    public function disconnect()
+    {
+        if ($this->ping()) {
+            $this->getProvider()->unauthenticate();
+        }
+    }
 }

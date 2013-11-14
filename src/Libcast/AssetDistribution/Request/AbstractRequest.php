@@ -50,12 +50,21 @@ abstract class AbstractRequest
     }
 
     /**
+     * Set URL, inject args if any
      * 
-     * @param string $url
+     * @param  string  $url   URL or URL pattern (if args)
+     * @param  mixed   $args  List of arguments to inject into URL
      * @return \Libcast\AssetDistribution\Request\RequestInterface
      */
-    public function setUrl($url)
+    public function setUrl($url, $args = null)
     {
+        if ($args) {
+            // inject params into the URL
+            $args = is_array($args) ? $args : array($args);
+            
+            $url = vsprintf($url, $args);
+        }
+
         $this->url = $url;
 
         return $this;
@@ -178,7 +187,7 @@ abstract class AbstractRequest
      * @param mixed  $context
      * @param mixed  $level
      */
-    public function log($message, $context = array(), $level = 'debug')
+    public function log($message, $context = array(), $level = 'info')
     {
         if (!is_array($context)) {
             $context = (array) $context;

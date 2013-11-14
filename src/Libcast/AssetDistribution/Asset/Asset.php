@@ -30,10 +30,11 @@ class Asset
      * @param  string                       $path      File path
      * @param  Provider|ProviderCollection  $provider  Provider(s) to manage to file with.
      * @param  LoggerInterface              $logger    Psr logger
+     * @param  object                       $session   Session manager
      * @return \Libcast\AssetDistribution\Asset\AssetInterface
      * @throws \Exception
      */
-    public static function load($path, $provider = null, LoggerInterface $logger = null)
+    public static function load($path, $provider = null, LoggerInterface $logger = null, $session = null)
     {
         if (!file_exists($path) || !filesize($path)) {
             throw new \Exception("File '$path' does not exists.");
@@ -41,7 +42,7 @@ class Asset
 
         switch ($type = self::getFileFormat($path)) {
             case self::TYPE_VIDEO: 
-                return new VideoAsset($path, $provider, $logger);
+                return new VideoAsset($path, $provider, $logger, $session);
 
             case self::TYPE_AUDIO:
             case self::TYPE_DOCUMENT:

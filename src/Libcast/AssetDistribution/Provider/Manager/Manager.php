@@ -32,7 +32,7 @@ class Manager
 
             default : 
                 try {
-                    $name = $provider->getName();
+                    $name = $provider->getBrand();
                 } catch (\Exception $e) {
                     $name = 'unknown';
                 }

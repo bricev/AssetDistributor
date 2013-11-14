@@ -5,7 +5,8 @@
     "homepage": "http://libcast.com",
     "license": "MIT",
     "require": {
-        "php": ">=5.3.0"
+        "php": ">=5.3.0",
+        "symfony/http-foundation": "2.3.*"
     },
     "require-dev": {
         "monolog/monolog": "1.4.0",

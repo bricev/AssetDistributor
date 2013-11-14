@@ -45,12 +45,11 @@ abstract class AbstractCredentials
      * 
      * Method `authenticate` has to be called to actually create a valid session.
      * 
-     * @param  ProviderInterface  $provider    A provider
-     * @param  array              $parameters  List of authentication parameters
+     * @param ProviderInterface $provider A provider
      */
-    public function __construct(ProviderInterface $provider = null, array $parameters = array())
+    public function __construct(ProviderInterface $provider = null)
     {
-        $this->provider = $provider;
+        $this->setProvider($provider);
     }
 
     /**

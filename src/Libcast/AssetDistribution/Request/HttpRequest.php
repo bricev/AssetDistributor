@@ -105,20 +105,20 @@ class HttpRequest extends AbstractRequest
      * 
      * @return void
      */
-    public function redirect()
+    public function redirect($redirect_from_client = false)
     {
         $url = $this->getUrl();
 
-        $arguments = $this->getArguments();
-        if ($arguments) {
-            $url = vsprintf($url, $arguments);
+        $this->log("Redirect to '$url'");
+
+        // do not redirect if the component is executed from CLI
+        if ('cli' === php_sapi_name()) {
+            return;
         }
 
-        $this->log("Redirect to '$url'.");
-
-        if (headers_sent()) {
-            // if headers have already been sent, try to send HTML code to force 
-            // the browser to redirect users
+        if ($redirect_from_client || headers_sent()) {
+            // try to send the redirect instruction to the client si it may be 
+            // executed from its body (instead of an HTTP code)
 
             die( '<noscript>'.PHP_EOL
                 .'  <meta http-equiv="refresh" content="0; url='.$url.'" />'.PHP_EOL
@@ -127,9 +127,9 @@ class HttpRequest extends AbstractRequest
                 .'  window.location.href="'.$url.'";'.PHP_EOL
                 .'</script>'.PHP_EOL
                 .'<a href="'.$url.'">'.$url.'</a>');
-        } else {
-            header("Location: $url");
-            die;
         }
+
+        header("Location: $url");
+        die;
     }
 }

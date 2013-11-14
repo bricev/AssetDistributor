@@ -11,10 +11,12 @@
 
 namespace Libcast\AssetDistribution\Provider;
 
+use Libcast\AssetDistribution\Provider\ProviderInterface;
 use Libcast\AssetDistribution\Provider\Credentials\CredentialsInterface;
 use Libcast\AssetDistribution\Provider\Credentials\Credentials;
 use Libcast\AssetDistribution\Provider\Manager\ManagerInterface;
 use Libcast\AssetDistribution\Provider\Manager\Manager;
+use Libcast\AssetDistribution\Session;
 
 abstract class AbstractProvider implements \Serializable
 {
@@ -28,7 +30,7 @@ abstract class AbstractProvider implements \Serializable
      * 
      * @var string Provider name
      */
-    protected $name;
+    protected $brand;
 
     /**
      * 
@@ -67,6 +69,18 @@ abstract class AbstractProvider implements \Serializable
     protected $logger;
 
     /**
+     *
+     * @var \Libcast\AssetDistribution\Session\Session
+     */
+    protected $session;
+
+    /**
+     *
+     * @var boolean True to add settings to the serialized object
+     */
+    protected $serialize_with_settings = false;
+
+    /**
      * Load a provider
      * 
      * If the provider is authorized to be managed, then its object can be 
@@ -77,13 +91,29 @@ abstract class AbstractProvider implements \Serializable
      * Parameters are serialized when providers are transformed into stings or when
      * added to a collection. Settings are not.
      * 
-     * @param mixed           $settings   List of settings or path to `.ini` config file
-     * @param mixed           $parameters List of parameters or path to `.ini` config file
-     * @param LoggerInterface $logger     Psr logger
+     * @param  string           $id          Identifier
+     * @param  mixed            $settings    List of settings or path to `.ini` config file
+     * @param  mixed            $parameters  List of parameters or path to `.ini` config file
+     * @param  LoggerInterface  $logger      Psr logger
+     * @param  object           $session     Session manager
      */
-    public function __construct($settings = null, $parameters = null, \Psr\Log\LoggerInterface $logger = null)
+    public function __construct($id, $settings = null, $parameters = null, \Psr\Log\LoggerInterface $logger = null, $session = null)
     {
+        if ($logger) {
+            $this->setLogger($logger);
+        }
+
+        $this->setSession($session);
+
+        // set identifier
+        // must be done before retriving a backuped version of this provider
+        $this->setId($id);
+
+        // inject specialized provider configuration
         $this->configure();
+
+        // check if this provider has been previously backuped
+        $this->retrieve();
 
         // add settings
         if (is_array($settings)) {
@@ -97,10 +127,6 @@ abstract class AbstractProvider implements \Serializable
             $this->setParameters($parameters);
         } elseif (is_string($parameters)) {
             $this->loadConfiguration($parameters, 'parameters');
-        }
-
-        if ($logger) {
-            $this->setLogger($logger);
         }
     }
 
@@ -121,22 +147,17 @@ abstract class AbstractProvider implements \Serializable
      */
     public function getId()
     {
-        if (!$this->id) {
-            // generate a uniq identifier
-            $this->setId(uniqid());
-        }
-
         return $this->id;
     }
 
     /**
      * 
-     * @param string $name 
+     * @param string $brand 
      * @return \Libcast\AssetDistribution\Provider\ProviderInterface
      */
-    protected function setName($name)
+    protected function setBrand($brand)
     {
-        $this->name = $name;
+        $this->brand = $brand;
 
         return $this;
     }
@@ -145,13 +166,13 @@ abstract class AbstractProvider implements \Serializable
      * 
      * @return string Name of the provider
      */
-    public function getName()
+    public function getBrand()
     {
-        if (!$this->name) {
+        if (!$this->brand) {
             throw new \Exception('Provider must be named.');
         }
 
-        return $this->name;
+        return $this->brand;
     }
 
     /**
@@ -201,6 +222,20 @@ abstract class AbstractProvider implements \Serializable
     public function getSettings()
     {
         return $this->settings;
+    }
+
+    /**
+     * 
+     * @param string $name
+     * @return \Libcast\AssetDistribution\Provider\ProviderInterface
+     */
+    public function deleteSetting($name)
+    {
+        if (isset($this->settings[$name])) {
+            unset($this->settings[$name]);
+        }
+
+        return $this;
     }
 
     /**
@@ -263,6 +298,20 @@ abstract class AbstractProvider implements \Serializable
 
     /**
      * 
+     * @param string $name
+     * @return \Libcast\AssetDistribution\Provider\ProviderInterface
+     */
+    public function deleteParameter($name)
+    {
+        if (isset($this->parameters[$name])) {
+            unset($this->parameters[$name]);
+        }
+
+        return $this;
+    }
+
+    /**
+     * 
      * @return bool True if param $name exists
      */
     public function hasParameter($name)
@@ -288,19 +337,19 @@ abstract class AbstractProvider implements \Serializable
             throw new \Exception("Impossible to read configuration file.");
         }
 
-        if (!isset($config[$name = $this->getName()]) || empty($config[$name])) {
-            throw new \Exception("There is no configuration for provider '$name'.");
+        if (!isset($config[$brand = $this->getBrand()]) || empty($config[$brand])) {
+            throw new \Exception("There is no configuration for provider '$brand'.");
         }
 
-        $this->log('Loading config file', array($file, $type, $name, $config[$name]));
+        $this->log('Loading config file', array($file, $type, $brand, $config[$brand]));
 
         switch ($type) {
             case 'parameters':
-                $this->setParameters($config[$name]);
+                $this->setParameters($config[$brand]);
                 break;
 
             case 'settings':
-                $this->setSettings($config[$name]);
+                $this->setSettings($config[$brand]);
                 break;
 
             default:
@@ -319,12 +368,12 @@ abstract class AbstractProvider implements \Serializable
     protected function setFieldNamesMap(array $map)
     {
         $this->fields_map = array_merge($this->fields_map, $map);
-        
+
         return $this;
     }
 
     /**
-     * Get a common field name based on it's provider name
+     * Get a common field name from its provider specific equivalent
      * 
      * @param  string $name Field's provider name
      * @return string       Common field name if exists, or $name value otherwise
@@ -337,7 +386,7 @@ abstract class AbstractProvider implements \Serializable
     }
 
     /**
-     * Get a provider field name based on it's common name
+     * Get a provider field name based on it's common equivalent
      * 
      * @param  string $name Field's common name
      * @return string       Provider field name if exists, or $name value otherwise
@@ -407,6 +456,39 @@ abstract class AbstractProvider implements \Serializable
 
     /**
      * 
+     * @param mixed $session
+     * @return \Libcast\AssetDistribution\Provider\ProviderInterface
+     */
+    public function setSession($session = null)
+    {
+        if (!$this->session) {
+            $this->session = Session::getInstance($session);
+        }
+
+        return $this;
+    }
+
+    /**
+     * 
+     * @return \Libcast\AssetDistribution\Session\Session
+     */
+    public function getSession()
+    {
+        if (!$this->session) {
+            $this->setSession();
+        }
+
+        if ($this->session instanceof Session 
+                && session_status() !== PHP_SESSION_ACTIVE
+                && !$this->session->isStarted()) {
+            $this->session->start();
+        }
+
+        return $this->session;
+    }
+
+    /**
+     * 
      * @param LoggerInterface $logger
      * @return \Libcast\AssetDistribution\Provider\ProviderInterface
      */
@@ -427,7 +509,53 @@ abstract class AbstractProvider implements \Serializable
     }
 
     /**
-     * Credentials proxy method
+     * Persists provider into session storage
+     *
+     * @return void
+     */
+    public function backup()
+    {
+        $session = $this->getSession();
+
+        $this->serialize_with_settings = true;
+        $session->store('provider', $this, serialize($this));
+        $this->serialize_with_settings = false;
+
+        $this->log("Provider '$this' backuped");
+    }
+
+    /**
+     * If a provider has been persisted into session storage, try to retrieve its 
+     * settings and parameters to merge them with the current object
+     * 
+     * @return void
+     */
+    public function retrieve()
+    {
+        $session = $this->getSession();
+
+        if (!$serialized = $session->retrieve('provider', $this)) {
+            $this->log("Provider '$this' was not backuped");
+            return;
+        }
+
+        $provider = unserialize($serialized);
+        if (!$provider instanceof ProviderInterface) {
+            $this->log("Provider '$this' backup is corrupted", $serialized, 'error');
+            return;
+        }
+
+        $this->setSettings($provider->getSettings());
+        $this->setParameters($provider->getParameters());
+
+        $this->log("Provider '$this' retrieved", array(
+            'settings'    => $provider->getSettings(),
+            'parametters' => $provider->getParameters(),
+        ));
+    }
+
+    /**
+     * Credentials proxy authenticate method
      */
     public function authenticate()
     {
@@ -435,14 +563,36 @@ abstract class AbstractProvider implements \Serializable
     }
 
     /**
+     * Credentials proxy unauthenticate method
+     */
+    public function unauthenticate()
+    {
+        return $this->getCredentials()->unauthenticate();
+    }
+
+    /**
+     * Credentials proxy revoke method
+     */
+    public function revoke()
+    {
+        return $this->getCredentials()->revoke();
+    }
+
+    /**
      * \Serializable::serialize 
      */
     public function serialize()
     {
-        return serialize(array(
+        $data = array(
             'id'         => $this->getId(),
             'parameters' => $this->getParameters(),
-        ));
+        );
+
+        if ($this->serialize_with_settings) {
+            $data['settings'] = $this->getSettings();
+        }
+
+        return serialize($data);
     }
 
     /**
@@ -454,9 +604,15 @@ abstract class AbstractProvider implements \Serializable
     {
         $unserialized = unserialize($data);
 
+        $this->configure(); // will reconfigure the provider's name (brand)
+
         $this->setId($unserialized['id']);
 
         $this->setParameters($unserialized['parameters']);
+
+        if (isset($unserialized['settings'])) {
+            $this->setSettings($unserialized['settings']);
+        }
     }
 
     /**
@@ -466,7 +622,7 @@ abstract class AbstractProvider implements \Serializable
      * @param mixed  $context
      * @param mixed  $level
      */
-    public function log($message, $context = array(), $level = 'debug')
+    public function log($message, $context = array(), $level = 'info')
     {
         if (!is_array($context)) {
             $context = (array) $context;
@@ -478,6 +634,6 @@ abstract class AbstractProvider implements \Serializable
     }
 
     public function __toString() {
-        return $this->isAuthorized() ? $this->serialize() : $this->getName();
+        return $this->getId();
     }
 }

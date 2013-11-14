@@ -20,20 +20,19 @@ class Credentials
     /**
      * Load credentials - factory style.
      * 
-     * @param  ProviderInterface  $provider
-     * @param  array              $parameters
+     * @param  ProviderInterface $provider
      * @return \Libcast\AssetDistribution\Provider\Credentials\CredentialsInterface
      * @throws \Exception
      */
-    public static function load(ProviderInterface $provider, $parameters = array())
+    public static function load(ProviderInterface $provider)
     {
         switch (true) {
             case $provider instanceof YoutubeProvider: 
-                return new YoutubeCredentials($provider, $parameters);
+                return new YoutubeCredentials($provider);
 
             default : 
                 try {
-                    $name = $provider->getName();
+                    $name = $provider->getBrand();
                 } catch (\Exception $e) {
                     $name = 'unknown';
                 }

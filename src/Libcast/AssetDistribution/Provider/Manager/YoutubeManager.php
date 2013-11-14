@@ -152,6 +152,8 @@ class YoutubeManager extends AbstractManager implements ManagerInterface
         }
 
         if (!$location) {
+            $provider->log('Youtube did not provide an upload URL', $request->getResponse());
+
             throw new \Exception('Impossible to initiate a YouTube upload.');
         }
 
@@ -167,7 +169,7 @@ class YoutubeManager extends AbstractManager implements ManagerInterface
                     ))
                     ->put();
 
-                        
+
             if (200 == $upload->getResponse('http_code')) {
                 // sucessfull upload
                 $this->is_uploaded = true;
