@@ -78,7 +78,7 @@ abstract class AbstractProvider implements \Serializable
      *
      * @var boolean True to add settings to the serialized object
      */
-    protected $serialize_with_settings = false;
+    public $serialize_with_settings = false;
 
     /**
      * Load a provider
