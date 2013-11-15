@@ -203,7 +203,10 @@ class YoutubeCredentials extends AbstractCredentials implements CredentialsInter
                     ->get();
         }
 
-        $this->unauthenticate();
+        $provider->deleteParameter('refresh_token')
+                ->deleteSetting('access_token')
+                ->deleteSetting('access_token_expiration')
+                ->backup();
     }
 
     /**
