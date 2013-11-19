@@ -24,37 +24,37 @@ abstract class AbstractAsset implements \Serializable
     const VISIBILITY_PRIVATE = 'private';
 
     /**
-     * 
+     *
      * @var string File path
      */
     protected $path;
 
     /**
-     * 
+     *
      * @var array List of providers
      */
     protected $providers = array();
 
     /**
-     * 
+     *
      * @var array Parameters
      */
     protected $parameters = array();
 
     /**
-     * 
+     *
      * @var string visible|hidden|private
      */
     protected $visibility;
 
     /**
-     * 
+     *
      * @var boolean True if the asset has not been saved at all
      */
     protected $is_new = true;
 
     /**
-     * 
+     *
      * @var \Psr\Log\LoggerInterface
      */
     protected $logger;
@@ -67,14 +67,14 @@ abstract class AbstractAsset implements \Serializable
 
     /**
      * Manage a digital asset across providers.
-     * 
+     *
      * @param  string                       $path      File path
      * @param  Provider|ProviderCollection  $provider  Provider(s) to manage to file with.
      * @param  LoggerInterface              $logger    Psr logger
      * @param  object                       $session   Session manager
      * @throws \Exception
      */
-    public function __construct($path = null, $providers = null, \Psr\Log\LoggerInterface $logger = null, $session = null) 
+    public function __construct($path = null, $providers = null, \Psr\Log\LoggerInterface $logger = null, $session = null)
     {
         if ($logger) {
             $this->setLogger($logger);
@@ -99,7 +99,7 @@ abstract class AbstractAsset implements \Serializable
     }
 
     /**
-     * 
+     *
      * @param string $path
      * @return \Libcast\AssetDistribution\Asset\AssetInterface
      */
@@ -115,7 +115,7 @@ abstract class AbstractAsset implements \Serializable
     }
 
     /**
-     * 
+     *
      * @return string File path
      * @throws \Exception
      */
@@ -130,11 +130,11 @@ abstract class AbstractAsset implements \Serializable
 
     /**
      * Add the provider only if it can handle the asset's file format.
-     * 
+     *
      * @param ProviderInterface $provider
      * @return \Libcast\AssetDistribution\Asset\AssetInterface
      */
-    public function addProvider(ProviderInterface $provider) 
+    public function addProvider(ProviderInterface $provider)
     {
         $this->providers[$provider->getId()] = $provider;
 
@@ -143,11 +143,11 @@ abstract class AbstractAsset implements \Serializable
 
     /**
      * Remove the provider
-     * 
+     *
      * @param ProviderInterface $provider
      * @return \Libcast\AssetDistribution\Asset\AssetInterface
      */
-    public function removeProvider(ProviderInterface $provider) 
+    public function removeProvider(ProviderInterface $provider)
     {
         if (array_key_exists($provider->getId(), $this->providers)) {
             unset($this->providers[$provider->getId()]);
@@ -158,7 +158,7 @@ abstract class AbstractAsset implements \Serializable
 
     /**
      * Add each provider of a collection
-     * 
+     *
      * @param ProviderCollection $collection
      * @return \Libcast\AssetDistribution\Asset\AssetInterface
      */
@@ -172,7 +172,7 @@ abstract class AbstractAsset implements \Serializable
     }
 
     /**
-     * 
+     *
      * @param mixed $provider A ProviderInterface object or identifier
      * @return boolean True if exists
      */
@@ -182,7 +182,7 @@ abstract class AbstractAsset implements \Serializable
     }
 
     /**
-     * 
+     *
      * @param null|string $id Provider identifier
      * @return \Libcast\AssetDistribution\Provider\ProviderInterface
      */
@@ -196,7 +196,7 @@ abstract class AbstractAsset implements \Serializable
     }
 
     /**
-     * 
+     *
      * @return array List of providers
      */
     public function getProviders()
@@ -205,7 +205,7 @@ abstract class AbstractAsset implements \Serializable
     }
 
     /**
-     * 
+     *
      * @param string $name
      * @param string $value
      * @return \Libcast\AssetDistribution\Asset\AssetInterface
@@ -218,7 +218,7 @@ abstract class AbstractAsset implements \Serializable
     }
 
     /**
-     * 
+     *
      * @param array $parameters
      * @return \Libcast\AssetDistribution\Asset\AssetInterface
      */
@@ -230,7 +230,7 @@ abstract class AbstractAsset implements \Serializable
     }
 
     /**
-     * 
+     *
      * @param string $name
      * @return string The value of parameter named $name
      */
@@ -245,7 +245,7 @@ abstract class AbstractAsset implements \Serializable
     }
 
     /**
-     * 
+     *
      * @return array List of parameters
      */
     public function getParameters()
@@ -254,7 +254,7 @@ abstract class AbstractAsset implements \Serializable
     }
 
     /**
-     * 
+     *
      * @return bool True if param $name exists
      */
     public function hasParameter($name)
@@ -263,7 +263,7 @@ abstract class AbstractAsset implements \Serializable
     }
 
     /**
-     * 
+     *
      * @param string $visibility
      * @return \Libcast\AssetDistribution\Asset\AssetInterface
      * @throws \Exception
@@ -280,7 +280,7 @@ abstract class AbstractAsset implements \Serializable
     }
 
     /**
-     * 
+     *
      * @return string visible|hidden|private
      */
     public function getVisibility()
@@ -293,16 +293,16 @@ abstract class AbstractAsset implements \Serializable
     }
 
     /**
-     * 
+     *
      * @return boolean True if the asset has not been saved at all
      */
     public function isNew()
     {
-        return $this->isNew();
+        return $this->isNew;
     }
 
     /**
-     * 
+     *
      * @param boolean $new True if the asset has not been saved at all
      * @return \Libcast\AssetDistribution\Asset\AssetInterface
      */
@@ -314,7 +314,7 @@ abstract class AbstractAsset implements \Serializable
     }
 
     /**
-     * 
+     *
      * @return array List of visibility labels
      */
     public static function getVisibilities()
@@ -327,7 +327,7 @@ abstract class AbstractAsset implements \Serializable
     }
 
     /**
-     * 
+     *
      * @return array List of common field names
      */
     public static function getCommonFields()
@@ -343,7 +343,7 @@ abstract class AbstractAsset implements \Serializable
     }
 
     /**
-     * 
+     *
      * @param mixed $session
      * @return \Libcast\AssetDistribution\Asset\AssetInterface
      */
@@ -357,7 +357,7 @@ abstract class AbstractAsset implements \Serializable
     }
 
     /**
-     * 
+     *
      * @return \Libcast\AssetDistribution\Session\Session
      */
     protected function getSession()
@@ -366,7 +366,7 @@ abstract class AbstractAsset implements \Serializable
             $this->setSession();
         }
 
-        if ($this->session instanceof Session 
+        if ($this->session instanceof Session
                 && session_status() !== PHP_SESSION_ACTIVE
                 && !$this->session->isStarted()) {
             $this->session->start();
@@ -376,7 +376,7 @@ abstract class AbstractAsset implements \Serializable
     }
 
     /**
-     * 
+     *
      * @param LoggerInterface $logger
      * @return \Libcast\AssetDistribution\Asset\AssetInterface
      */
@@ -402,9 +402,9 @@ abstract class AbstractAsset implements \Serializable
     }
 
     /**
-     * If a asset has been persisted into session storage, try to retrieve its 
+     * If a asset has been persisted into session storage, try to retrieve its
      * settings and parameters to merge them with the current object
-     * 
+     *
      * @return void
      */
     public function retrieve()
@@ -435,7 +435,7 @@ abstract class AbstractAsset implements \Serializable
 
     /**
      * Logger proxy method.
-     * 
+     *
      * @param string $message
      * @param mixed  $context
      * @param mixed  $level
@@ -452,7 +452,7 @@ abstract class AbstractAsset implements \Serializable
     }
 
     /**
-     * \Serializable::serialize 
+     * \Serializable::serialize
      */
     public function serialize()
     {
@@ -464,8 +464,8 @@ abstract class AbstractAsset implements \Serializable
     }
 
     /**
-     * \Serializable::unserialize 
-     * 
+     * \Serializable::unserialize
+     *
      * @param string $data Serialized data
      */
     public function unserialize($data)
@@ -480,7 +480,7 @@ abstract class AbstractAsset implements \Serializable
     }
 
     /**
-     * 
+     *
      * @return array List of manager methods
      */
     protected function getManagerMethods()
@@ -497,7 +497,7 @@ abstract class AbstractAsset implements \Serializable
 
     /**
      * Call methods from all available managers – composite style.
-     * 
+     *
      * @param string $method Method called
      * @param array $arguments List of aguments to pass to the method
      * @return \Libcast\AssetDistribution\Asset\AssetInterface
@@ -519,11 +519,11 @@ abstract class AbstractAsset implements \Serializable
         // manage the asset with each provider's manager
         $n = 0;
         foreach ($this->getProviders() as $provider) {
-            // whether it works or not, we count how many managers the method has 
+            // whether it works or not, we count how many managers the method has
             // been called on
             $n++;
 
-            // if the asset has already managed by a provider (eg. after a 
+            // if the asset has already managed by a provider (eg. after a
             // redirection due to authentication) then continue
             if ($session->retrieve("$this/$method", $provider)) {
                 $this->log("Provider '$provider' has already called '$method'");
@@ -532,7 +532,7 @@ abstract class AbstractAsset implements \Serializable
 
             // connect provider (authenticate)
             $manager = $provider->getManager();
-            $manager->setAsset($this) 
+            $manager->setAsset($this)
                     ->connect();
 
             /* @var $manager \Libcast\AssetDistribution\Provider\Manager\AbstractManager */
@@ -553,7 +553,7 @@ abstract class AbstractAsset implements \Serializable
             // to redirect, asset data will be saved
             $this->backup();
 
-            // disconnect to enable manage on multiple providers of a same 
+            // disconnect to enable manage on multiple providers of a same
             // origine (same brand)
             $manager->disconnect();
         }
