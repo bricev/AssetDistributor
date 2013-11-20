@@ -277,10 +277,15 @@ class YoutubeManager extends AbstractManager implements ManagerInterface
         // collect snippet data
         $snippet = array();
         foreach (array('title', 'description', 'keywords', 'category') as $field) {
+            $value = null;
             if ($asset->hasParameter($field)) {
-                $snippet[$provider->getProviderFieldName($field)] = $asset->getParameter($field);
+                $value = $asset->getParameter($field);
             } elseif ($this->hasProviderParameter($provider->getProviderFieldName($field))) {
-                $snippet[$provider->getProviderFieldName($field)] = $this->getProviderParameter($provider->getProviderFieldName($field));
+                $value = $this->getProviderParameter($provider->getProviderFieldName($field));
+            }
+
+            if ($value) {
+                $snippet[$provider->getProviderFieldName($field)] = $this->escape($value);
             }
         }
 
@@ -291,11 +296,16 @@ class YoutubeManager extends AbstractManager implements ManagerInterface
 
         // collect status data
         $status = array();
-        foreach (array('embeddable', 'publicStatsViewable') as $field) {
+        foreach (array('shareable', 'publicStatsViewable') as $field) {
+            $value = null;
             if ($asset->hasParameter($field)) {
-                $status[$provider->getProviderFieldName($field)] = $asset->getParameter($field);
+                $value = $asset->getParameter($field);
             } elseif ($this->hasProviderParameter($provider->getProviderFieldName($field))) {
-                $status[$provider->getProviderFieldName($field)] = $this->getProviderParameter($provider->getProviderFieldName($field));
+                $value = $this->getProviderParameter($provider->getProviderFieldName($field));
+            }
+
+            if ($value) {
+                $status[$provider->getProviderFieldName($field)] = $value;
             }
         }
 
@@ -321,5 +331,27 @@ class YoutubeManager extends AbstractManager implements ManagerInterface
             'snippet' => $snippet,
             'status'  => $status,
         )));
+    }
+
+    /**
+     * Currently only strips tags
+     *
+     * @param array|string $value
+     * @return array|string
+     * @throws \Exception
+     */
+    protected function escape($value)
+    {
+        if (is_array($value)) {
+            foreach ($value as $k => $v) {
+                $value[$k] = $this->escape($v);
+            }
+        } elseif (is_string($value)) {
+            $value = strip_tags($value);
+        } else {
+            throw new \Exception('Only arrays or strings may be escaped.');
+        }
+
+        return $value;
     }
 }
