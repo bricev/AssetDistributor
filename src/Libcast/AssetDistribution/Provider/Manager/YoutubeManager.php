@@ -39,13 +39,13 @@ class YoutubeManager extends AbstractManager implements ManagerInterface
 
         // asset has a trace of provider reference
         // let's try to find it on the remote provider
-        return $this->find() instanceof AssetInterface ? false : true;
+        return $this->find(null, false) instanceof AssetInterface ? false : true;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function find($key = null)
+    public function find($key = null, $overwrite = true)
     {
         if (!$key) {
             if (!$this->hasProviderParameter('video_id')) {
@@ -71,11 +71,18 @@ class YoutubeManager extends AbstractManager implements ManagerInterface
                 ->setHeaders("Authorization: Bearer {$credentials->getAccessToken()}")
                 ->get();
 
-        $video = json_decode($request->getResponse(), true);
-        $video = $video['items'][0];
+        $resource = json_decode($request->getResponse(), true);
+        $video    = $resource['items'][0];
 
         if (!isset($video['snippet']) || !isset($video['snippet'])) {
             throw new \Exception('Impossible to find the video.');
+        }
+
+        // mark the video as existing on YouTube
+        $this->is_new = false;
+
+        if (!$overwrite) {
+            return parent::find($key);
         }
 
         // load data from YouTube snippet and status
@@ -107,9 +114,6 @@ class YoutubeManager extends AbstractManager implements ManagerInterface
                     break;
             }
         }
-
-        // mark the video as existing on YouTube
-        $this->is_new = false;
 
         return parent::find($key);
     }
@@ -258,7 +262,7 @@ class YoutubeManager extends AbstractManager implements ManagerInterface
     }
 
     /**
-     * 
+     *
      * @param  array $root Base of the video resource
      * @return string YouTube Video Resource in Json format
      */
@@ -300,7 +304,7 @@ class YoutubeManager extends AbstractManager implements ManagerInterface
 
         // get privacy status
         switch ($asset->getVisibility()) {
-            case AbstractAsset::VISIBILITY_VISIBLE: 
+            case AbstractAsset::VISIBILITY_VISIBLE:
                 $status['privacyStatus'] = 'public';
                 break;
 
