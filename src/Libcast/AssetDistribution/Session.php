@@ -23,14 +23,14 @@ class Session
      */
     protected $session;
 
-    private function __construct($session = null) 
+    private function __construct($session = null)
     {
         $this->setSession($session);
     }
 
     /**
      * Get session instance - singleton style
-     * 
+     *
      * @staticvar null $instance
      * @return \static
      */
@@ -45,7 +45,7 @@ class Session
     }
 
     /**
-     * 
+     *
      * @param mixed $session
      * @return \Libcast\AssetDistribution\Asset\AssetInterface
      */
@@ -59,7 +59,7 @@ class Session
     }
 
     /**
-     * 
+     *
      * @return object Session for local storage
      */
     protected function getSession()
@@ -68,9 +68,10 @@ class Session
             $this->setSession();
         }
 
-        if ($this->session instanceof Session 
+        if ($this->session instanceof Session
                 && session_status() !== PHP_SESSION_ACTIVE
-                && !$this->session->isStarted()) {
+                && !$this->session->isStarted()
+                && !headers_sent()) {
             $this->session->start();
         }
 
@@ -78,7 +79,7 @@ class Session
     }
 
     /**
-     * 
+     *
      * @param string $type
      * @param string $name
      * @param mixed $value
@@ -99,7 +100,7 @@ class Session
     }
 
     /**
-     * 
+     *
      * @param string $type
      * @param string $name
      * @return mixed
@@ -114,7 +115,7 @@ class Session
     }
 
     /**
-     * 
+     *
      * @param string $type
      * @param string $name
      * @return mixed
@@ -133,7 +134,7 @@ class Session
             // delete the whole object container
             unset($objects[$type]);
         } else {
-            // only delete a specific object 
+            // only delete a specific object
 
             if (!isset($objects[$type][(string) $name])) {
                 return;
@@ -146,8 +147,8 @@ class Session
     }
 
     /**
-     * Proxy call session methods 
-     * 
+     * Proxy call session methods
+     *
      * @param string $method
      * @param array $arguments
      * @return mixed

@@ -366,13 +366,20 @@ abstract class AbstractAsset implements \Serializable
             $this->setSession();
         }
 
-        if ($this->session instanceof Session
-                && session_status() !== PHP_SESSION_ACTIVE
-                && !$this->session->isStarted()) {
-            $this->session->start();
-        }
-
         return $this->session;
+    }
+
+    /**
+     * Clean session
+     */
+    public function cleanSession()
+    {
+        $this->getSession()->invalidate();
+        $this->log('Session renewed');
+
+        foreach ($this->getProviders() as $provider) {
+            $provider->backup();
+        }
     }
 
     /**
@@ -518,6 +525,7 @@ abstract class AbstractAsset implements \Serializable
 
         // manage the asset with each provider's manager
         $n = 0;
+        $auth = true;
         foreach ($this->getProviders() as $provider) {
             // whether it works or not, we count how many managers the method has
             // been called on
@@ -529,6 +537,8 @@ abstract class AbstractAsset implements \Serializable
                 $this->log("Provider '$provider' has already called '$method'");
                 continue;
             }
+
+            $auth = !$auth ? false : $provider->isAuthorized();
 
             // connect provider (authenticate)
             $manager = $provider->getManager();
@@ -557,6 +567,10 @@ abstract class AbstractAsset implements \Serializable
             // origine (same brand)
             $manager->disconnect();
         }
+
+        // clean renew but re-store providers if one of them was not authorized so
+        // that credentials can't be lost
+        $this->cleanSession();
 
         if (!$n) {
             throw new \Exception("There is no provider on which to apply '$method'");
