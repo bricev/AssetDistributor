@@ -2,53 +2,139 @@
 
 namespace Libcast\AssetDistributor\Adapter;
 
-use Doctrine\Common\Cache\Cache;
 use Libcast\AssetDistributor\Asset\Asset;
-use Libcast\AssetDistributor\Driver\Driver;
+use Libcast\AssetDistributor\Configuration\CategoryRegistry;
+use Libcast\AssetDistributor\Configuration\Configuration;
+use Libcast\AssetDistributor\Configuration\ConfigurationFactory;
+use Libcast\AssetDistributor\Owner;
 
 abstract class AbstractAdapter
 {
     /**
      *
-     * @var Driver
+     * @var mixed
      */
-    protected $driver;
+    protected $client;
 
     /**
      *
-     * @var \Doctrine\Common\Cache\Cache
+     * @var Owner
      */
-    protected $cache;
+    protected $owner;
 
     /**
      *
-     * @param $client
-     * @param Cache $cache
+     * @var Configuration
      */
-    function __construct(Driver $driver, Cache $cache = null)
+    protected $configuration;
+
+    /**
+     *
+     * @var string
+     */
+    protected $credentials;
+
+    /**
+     *
+     * @var bool
+     */
+    protected $isAuthenticated = false;
+
+    /**
+     *
+     * @param mixed $configuration
+     * @param Owner $owner
+     */
+    function __construct(Owner $owner, $configuration)
     {
-        $this->driver = $driver;
-        $this->cache = $cache;
+        $this->owner = $owner;
+
+        if ($configuration instanceof Configuration) {
+            $this->configuration = $configuration;
+        } else {
+            $this->configuration = ConfigurationFactory::build($this->getVendor(), $configuration);
+        }
+
+        // Register Vendor shared configurations
+        CategoryRegistry::addVendorCategories($this->getVendor(), $configuration->getCategoryMap());
+
+        // Adapters only work with authenticated accounts
+        if (!$this->isAuthenticated()) {
+            $this->authenticate();
+        }
     }
 
     /**
      *
      * @return string
-     * @throws \Exception
      */
-    public function getVendor()
+    abstract protected function getVendor();
+
+    /**
+     *
+     * @param string $key
+     * @param mixed  $default
+     * @return mixed
+     */
+    public function getConfiguration($key, $default = null)
     {
-        return $this->driver->getVendor();
+        return $this->configuration->get($key, $default);
+    }
+
+    /**
+     *
+     * @return \Doctrine\Common\Cache\Cache
+     */
+    protected function getCache()
+    {
+        return $this->owner->getCache();
     }
 
     /**
      *
      * @return mixed
      */
-    protected function getClient()
+    public function getCredentials()
     {
-        return $this->driver->getClient();
+        if ($this->credentials) {
+            return $this->credentials;
+        }
+
+        if (!$accounts = $this->owner->getAccounts()) {
+            return null;
+        }
+
+        if (!isset($accounts[$this->getVendor()]) or !$credentials = $accounts[$this->getVendor()]) {
+            return null;
+        }
+
+        return $this->credentials = $credentials;
     }
+
+    /**
+     *
+     * @param mixed $credentials
+     */
+    public function setCredentials($credentials)
+    {
+        $this->credentials = $credentials;
+        $this->owner->setAccount($this->getVendor(), $credentials);
+    }
+
+    /**
+     *
+     * @return boolean
+     */
+    public function isAuthenticated()
+    {
+        return $this->isAuthenticated;
+    }
+
+    /**
+     *
+     * @return void
+     */
+    abstract protected function authenticate();
 
     /**
      * Maps an Asset to a Provider resource identifier
@@ -58,13 +144,13 @@ abstract class AbstractAdapter
      */
     protected function remember(Asset $asset, $identifier)
     {
-        if (!$map = $this->cache->fetch((string) $asset)) {
+        if (!$map = $this->getCache()->fetch((string) $asset)) {
             $map = [];
         }
 
         $map[$this->getVendor()] = $identifier;
 
-        $this->cache->save((string) $asset, $map);
+        $this->getCache()->save((string) $asset, $map);
     }
 
     /**
@@ -75,7 +161,7 @@ abstract class AbstractAdapter
      */
     protected function retrieve(Asset $asset)
     {
-        if (!$map = $this->cache->fetch((string) $asset)) {
+        if (!$map = $this->getCache()->fetch((string) $asset)) {
             return null;
         }
 
@@ -86,11 +172,10 @@ abstract class AbstractAdapter
      * Remove an Asset from the map
      *
      * @param Asset $asset
-     * @param $identifier
      */
     protected function forget(Asset $asset)
     {
-        if (!$map = $this->cache->fetch((string) $asset)) {
+        if (!$map = $this->getCache()->fetch((string) $asset)) {
             return;
         }
 
@@ -98,11 +183,27 @@ abstract class AbstractAdapter
             unset($map[$this->getVendor()]);
         }
 
-        $this->cache->save((string) $asset, $map);
+        $this->getCache()->save((string) $asset, $map);
     }
 
-    public static function build(Cache $cache)
+    /**
+     *
+     * @param string $url
+     * @param bool   $from_client
+     * @throws \Exception
+     */
+    public function redirect($url, $from_client = false)
     {
+        if ('cli' === php_sapi_name()) {
+            throw new \Exception('Impossible to redirect from CLI');
+        }
 
+        if ($from_client or headers_sent()) {
+            echo sprintf('<noscript><meta http-equiv="refresh" content="0; url=%1$s" /></noscript><script type="text/javascript">  window.location.href="%1$s"; </script><a href="%1$s">%1$s</a>', $url);
+        } else {
+            header("Location: $url");
+        }
+
+        exit;
     }
 }

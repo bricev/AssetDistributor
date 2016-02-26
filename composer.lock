@@ -4,9 +4,42 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "d3e4bcfdaae453091f10260a0ef450b2",
-    "content-hash": "ad1d3fa2561cb28a1547faf8f2f21295",
+    "hash": "045992b4cdf050c696031f9275cfe22d",
+    "content-hash": "7b3ccf68074c13c930ec18926834fbde",
     "packages": [
+        {
+            "name": "dailymotion/sdk",
+            "version": "1.6.5",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/dailymotion/dailymotion-sdk-php.git",
+                "reference": "0f558978785f9a6ab9e59c393041d4896550973b"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/dailymotion/dailymotion-sdk-php/zipball/0f558978785f9a6ab9e59c393041d4896550973b",
+                "reference": "0f558978785f9a6ab9e59c393041d4896550973b",
+                "shasum": ""
+            },
+            "type": "library",
+            "autoload": {
+                "classmap": [
+                    "Dailymotion.php"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "Dailymotion PHP SDK",
+            "homepage": "http://dailymotion.com",
+            "keywords": [
+                "api",
+                "dailymotion",
+                "sdk"
+            ],
+            "time": "2015-11-20 11:18:32"
+        },
         {
             "name": "doctrine/cache",
             "version": "v1.6.0",

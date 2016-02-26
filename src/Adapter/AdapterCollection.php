@@ -3,7 +3,7 @@
 namespace Libcast\AssetDistributor\Adapter;
 
 use Libcast\AssetDistributor\Asset\Asset;
-use Libcast\AssetDistributor\Configuration;
+use Libcast\AssetDistributor\Configuration\ConfigurationFactory;
 use Libcast\AssetDistributor\Owner;
 
 class AdapterCollection extends \ArrayIterator implements Adapter
@@ -58,12 +58,12 @@ class AdapterCollection extends \ArrayIterator implements Adapter
 
     /**
      *
-     * @param Owner $owner
-     * @param Configuration $configuration
+     * @param Owner  $owner
+     * @param string $configurationPath
      * @return AdapterCollection
      * @throws \Exception
      */
-    public static function retrieveFromCache(Owner $owner, Configuration $configuration)
+    public static function retrieveFromCache(Owner $owner, $configurationPath)
     {
         $collection = new self;
 
@@ -72,7 +72,33 @@ class AdapterCollection extends \ArrayIterator implements Adapter
         }
 
         foreach ($accounts as $vendor => $credentials) {
-            $collection[] = AdapterFactory::build($vendor, $configuration, $owner);
+            $collection[] = AdapterFactory::build($vendor, $owner, $configurationPath);
+        }
+
+        return $collection;
+    }
+
+    /**
+     *
+     * @param Asset  $asset
+     * @param Owner  $owner
+     * @param string $configurationPath
+     * @return AdapterCollection
+     * @throws \Exception
+     */
+    public static function buildForAsset(Asset $asset, Owner $owner, $configurationPath)
+    {
+        $collection = new self;
+
+        $vendors = ConfigurationFactory::getVendors($configurationPath);
+        foreach ($vendors as $vendor) {
+            $class = AdapterFactory::getClassName($vendor);
+
+            if (!$class::support($asset)) {
+                continue;
+            }
+
+            $collection[] = new $class($owner, $configurationPath);
         }
 
         return $collection;

@@ -2,7 +2,6 @@
 
 namespace Libcast\AssetDistributor\YouTube;
 
-use League\Flysystem\File;
 use Google_Http_MediaFileUpload as FileUpload;
 use Google_Service_YouTube_VideoSnippet as Snippet;
 use Google_Service_YouTube_VideoStatus as Status;
@@ -11,40 +10,122 @@ use Libcast\AssetDistributor\Adapter\AbstractAdapter;
 use Libcast\AssetDistributor\Adapter\Adapter;
 use Libcast\AssetDistributor\Asset\Asset;
 use Libcast\AssetDistributor\Asset\Video;
+use Symfony\Component\HttpFoundation\Request;
 
-/**
- *
- * @method \Google_Service_YouTube getClient()
- */
 class YouTubeAdapter extends AbstractAdapter implements Adapter
 {
     /**
      *
-     * @var \Google_Service_YouTube_VideoSnippet
+     * @var string Json
      */
-    protected $snippet;
+    protected $accessToken;
 
     /**
      *
-     * @var \Google_Service_YouTube_VideoStatus
+     * @return string
      */
-    protected $status;
+    public function getVendor()
+    {
+        return 'YouTube';
+    }
 
     /**
      *
-     * @var \Google_Service_YouTube_Video
+     * @return \Google_Service_YouTube
      */
-    protected $resource;
+    public function getClient()
+    {
+        if ($this->client) {
+            return $this->client;
+        }
+
+        $google = new \Google_Client;
+        $google->setClientId($this->getConfiguration('id'));
+        $google->setClientSecret($this->getConfiguration('secret'));
+        $google->setApplicationName($this->getConfiguration('application'));
+        $google->setAccessType($this->getConfiguration('access_type'));
+
+        $google->setScopes($this->getConfiguration('scopes'));
+
+        $google->setRedirectUri($this->getConfiguration('redirectUri'));
+
+        if ($token = $this->getCredentials()) {
+            $google->setAccessToken($token);
+
+            if ($google->isAccessTokenExpired()) {
+                $json = json_decode($token);
+                $google->refreshToken($json->refresh_token);
+                $this->setCredentials($google->getAccessToken());
+            }
+        }
+
+        return $this->client = new \Google_Service_YouTube($google);
+    }
 
     /**
-     *
-     * @param Video $asset
-     * @throws \Exception
-     * @see https://github.com/youtube/api-samples/blob/master/php/resumable_upload.php
+     * {@inheritdoc}
+     */
+    public function authenticate()
+    {
+        $google = $this->getClient()->getClient();
+        $request = Request::createFromGlobals();
+        $session = $request->getSession();
+
+        if ($code = $request->query->get('code')) {
+            if (!$requestStale = $request->query->get('stale')) {
+                throw new \Exception('Missing stale from YouTube request');
+            }
+
+            if (!$sessionStale = $session->get('stale')) {
+                throw new \Exception('Missing stale from YouTube session');
+            }
+
+            if (strval($requestStale) !== strval($sessionStale)) {
+                throw new \Exception('YouTube session stale and request stale don\'t match');
+            }
+
+            $google->authenticate($code);
+
+            $session->set('token', $google->getAccessToken());
+//            $this->redirect($this->getConfiguration('redirectUri'));
+        }
+
+        if ($token = $session->get('token')) {
+            $google->setAccessToken($token);
+        }
+
+        if ($accessToken = $google->getAccessToken()) {
+            $this->accessToken = $accessToken;
+            $this->setCredentials($accessToken);
+        } else {
+            $state = mt_rand();
+            $google->setState($state);
+            $session->set('state', $state);
+
+            $this->redirect($google->createAuthUrl());
+        }
+
+        $this->isAuthenticated = true;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function support(Asset $asset)
+    {
+        if (!$asset instanceof Video) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * {@inheritdoc}
      */
     public function upload(Asset $asset)
     {
-        if (!$asset instanceof Video) {
+        if (!self::support($asset)) {
             throw new \Exception('YouTube adapter only handles video assets');
         }
 
@@ -53,7 +134,7 @@ class YouTubeAdapter extends AbstractAdapter implements Adapter
         $client = $youtube->getClient();
         $client->setDefer(true);
 
-        $request = $youtube->videos->insert('status,snippet', $this->getResource($asset));
+        $request = $youtube->videos->insert('status,snippet', $this->getResource($asset)); /** @var \Psr\Http\Message\RequestInterface $request */
 
         $media = new FileUpload($client, $request, $asset->getMimetype(), null, true);
         $media->setChunkSize($chunkSize = 10 * 1024 * 1024);
@@ -78,7 +159,7 @@ class YouTubeAdapter extends AbstractAdapter implements Adapter
     public function update(Asset $asset)
     {
         if (!$video_id = $this->retrieve($asset)) {
-            throw new \Exception('File is unknown to YouTube');
+            throw new \Exception('Asset is unknown to YouTube');
         }
 
         $youtube = $this->getClient();
@@ -95,7 +176,7 @@ class YouTubeAdapter extends AbstractAdapter implements Adapter
     public function remove(Asset $asset)
     {
         if (!$video_id = $this->retrieve($asset)) {
-            throw new \Exception('Unknown file');
+            throw new \Exception('Asset is unknown to YouTube');
         }
 
         $youtube = $this->getClient();
@@ -106,75 +187,70 @@ class YouTubeAdapter extends AbstractAdapter implements Adapter
 
     /**
      *
-     * @param $title
-     * @param array $parameters
-     * @return Snippet
+     * @param Asset $asset
+     * @return \Google_Service_YouTube_VideoSnippet
      */
-    protected function getSnippet($title, array $parameters = [])
+    protected function getSnippet(Asset $asset)
     {
-        if ($this->snippet) {
-            return $this->snippet;
+        $snippet = new Snippet;
+        $snippet->setTitle($asset->getTitle());
+
+        if ($description = $asset->getDescription()) {
+            $snippet->setDescription($description);
         }
 
-        $this->snippet = new Snippet;
-        $this->snippet->setTitle($title);
-
-        if (isset($parameters['description']) and $description = $parameters['description']) {
-            $this->snippet->setDescription($description);
+        if ($tags = $asset->getTags()) {
+            $snippet->setTags($tags);
         }
 
-        if (isset($parameters['tags']) and $tags = $parameters['tags']) {
-            $this->snippet->setTags($tags);
+        if ($category_id = $asset->getCategory($this->getVendor())) {
+            $snippet->setCategoryId($category_id);
         }
 
-        if (isset($parameters['category_id']) and $category_id = $parameters['category_id']) {
-            $this->snippet->setCategoryId($category_id);
-        }
-
-        return $this->snippet;
+        return $snippet;
     }
 
     /**
      *
-     * @param string $status
-     * @return \Google_Service_YouTube_VideoStatus
+     * @param Asset $asset
+     * @return Status
+     * @throws \Exception
      */
-    protected function getStatus($status = 'public')
+    protected function getStatus(Asset $asset)
     {
-        if ($this->status) {
-            return $this->status;
+        $status = new Status;
+
+        switch (true) {
+            case $asset->isPublic():
+                $status->setPrivacyStatus('public');
+                break;
+
+            case $asset->isPrivate():
+                $status->setPrivacyStatus('private');
+                break;
+
+            case $asset->isHidden():
+                $status->setPrivacyStatus('hidden');
+                break;
+
+            default:
+                throw new \Exception('Missing asset visibility for YouTube');
         }
 
-        $this->status = new Status;
-        $this->status->setPrivacyStatus($status);
-
-        return $this->status;
+        return $status;
     }
 
     /**
      *
-     * @param File $file
-     * @param array $parameters
+     * @param Asset $asset
      * @return \Google_Service_YouTube_Video
      */
-    protected function getResource(File $file, array $parameters = [])
+    protected function getResource(Asset $asset)
     {
-        if ($this->resource) {
-            return $this->resource;
-        }
+        $resource = new Resource;
+        $resource->setSnippet($this->getSnippet($asset));
+        $resource->setStatus($this->getStatus($asset));
 
-        if (!isset($parameters['title']) or !$title = $parameters['title']) {
-            $title = pathinfo($file->getPath(), PATHINFO_BASENAME);
-        }
-
-        if (!isset($parameters['status']) or !$status = $parameters['status']) {
-            $status = 'public';
-        }
-
-        $this->resource = new Resource;
-        $this->resource->setSnippet($this->getSnippet($title, $parameters));
-        $this->resource->setStatus($this->getStatus($status));
-
-        return $this->resource;
+        return $resource;
     }
 }

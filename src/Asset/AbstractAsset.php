@@ -3,11 +3,16 @@
 namespace Libcast\AssetDistributor\Asset;
 
 use League\Flysystem\File;
-use Libcast\AssetDistributor\Adapter\Adapter;
-use Libcast\AssetDistributor\Adapter\AdapterCollection;
+use Libcast\AssetDistributor\Configuration\CategoryRegistry;
 
 abstract class AbstractAsset
 {
+    const VISIBILITY_PUBLIC = 'public';
+
+    const VISIBILITY_PRIVATE = 'private';
+
+    const VISIBILITY_HIDDEN = 'hidden';
+
     /**
      *
      * @var File
@@ -40,8 +45,19 @@ abstract class AbstractAsset
 
     /**
      *
+     * @var string
+     */
+    protected $category;
+
+    /**
+     *
+     * @var string
+     */
+    protected $visibility = self::VISIBILITY_PUBLIC;
+
+    /**
+     *
      * @param File $file
-     * @param array $adapters Array of Adapter objects
      */
     function __construct(File $file)
     {
@@ -70,7 +86,7 @@ abstract class AbstractAsset
      *
      * @return string
      */
-    public function getMimeType()
+    public function getMimetype()
     {
         return $this->file->getMimetype();
     }
@@ -107,6 +123,10 @@ abstract class AbstractAsset
      */
     public function getTitle()
     {
+        if (!$this->title) {
+            $this->setTitle(pathinfo($this->getPath(), PATHINFO_BASENAME));
+        }
+
         return $this->title;
     }
 
@@ -153,6 +173,93 @@ abstract class AbstractAsset
     public function setTags(array $tags)
     {
         $this->tags = $tags;
+    }
+
+    /**
+     *
+     * @param $key
+     * @param $value
+     */
+    public function addTag($key, $value)
+    {
+        $this->tags[$key] = $value;
+    }
+
+    /**
+     *
+     * @param null $vendor
+     * @return mixed
+     */
+    public function getCategory($vendor = null)
+    {
+        if ($this->category && $vendor) {
+            return CategoryRegistry::get($this->category, $vendor);
+        }
+
+        return $this->category;
+    }
+
+    /**
+     *
+     * @param mixed $category
+     */
+    public function setCategory($category)
+    {
+        $this->category = $category;
+    }
+
+    /**
+     *
+     * @return string
+     */
+    public function getVisibility()
+    {
+        return $this->visibility;
+    }
+
+    /**
+     *
+     * @param $visibility
+     * @throws \Exception
+     */
+    public function setVisibility($visibility)
+    {
+        if (!in_array($visibility, [
+            self::VISIBILITY_PUBLIC,
+            self::VISIBILITY_PRIVATE,
+            self::VISIBILITY_HIDDEN,
+        ])) {
+            throw new \Exception("Visibility '$visibility' is not supported");
+        }
+
+        $this->visibility = $visibility;
+    }
+
+    /**
+     *
+     * @return bool
+     */
+    public function isPublic()
+    {
+        return self::VISIBILITY_PUBLIC === $this->getVisibility();
+    }
+
+    /**
+     *
+     * @return bool
+     */
+    public function isPrivate()
+    {
+        return self::VISIBILITY_PRIVATE === $this->getVisibility();
+    }
+
+    /**
+     *
+     * @return bool
+     */
+    public function isHidden()
+    {
+        return self::VISIBILITY_HIDDEN === $this->getVisibility();
     }
 
     /**
