@@ -137,7 +137,7 @@ class YouTubeAdapter extends AbstractAdapter implements Adapter
             throw new \Exception('YouTube adapter only handles video assets');
         }
 
-        if ($this->retrieve($asset)) {
+        if (!is_null($this->retrieve($asset))) {
             return;
         }
 
