@@ -56,7 +56,7 @@ abstract class AbstractConfiguration
         $url = sprintf('%s://%s%s',
             $request->getScheme(),
             $request->getHttpHost(),
-            $request->getRequestUri());
+            $request->getBaseUrl());
 
         return filter_var($url, FILTER_SANITIZE_URL);
     }

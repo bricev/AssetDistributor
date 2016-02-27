@@ -13,7 +13,7 @@ class VimeoConfiguration extends AbstractConfiguration implements Configuration
     public function __construct(array $configuration)
     {
         $configuration = array_merge($configuration, [
-            'scopes' => ['create', 'edit', 'delete', 'upload'],
+            'scopes' => ['upload', 'create', 'edit', 'delete'],
         ]);
 
         parent::__construct($configuration);

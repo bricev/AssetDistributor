@@ -11,6 +11,7 @@ use Libcast\AssetDistributor\Adapter\Adapter;
 use Libcast\AssetDistributor\Asset\Asset;
 use Libcast\AssetDistributor\Asset\Video;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Session\Session;
 
 class YouTubeAdapter extends AbstractAdapter implements Adapter
 {
@@ -57,9 +58,17 @@ class YouTubeAdapter extends AbstractAdapter implements Adapter
                 $google->refreshToken($json->refresh_token);
                 $this->setCredentials($google->getAccessToken());
             }
+
+            $this->isAuthenticated = true;
         }
 
-        return $this->client = new \Google_Service_YouTube($google);
+        $this->client = new \Google_Service_YouTube($google); // Now getClient() returns \Google_Service_YouTube
+
+        if (!$this->isAuthenticated()) {
+            $this->authenticate();
+        }
+
+        return $this->client;
     }
 
     /**
@@ -69,19 +78,19 @@ class YouTubeAdapter extends AbstractAdapter implements Adapter
     {
         $google = $this->getClient()->getClient();
         $request = Request::createFromGlobals();
-        $session = $request->getSession();
+        $session = new Session;
 
         if ($code = $request->query->get('code')) {
-            if (!$requestStale = $request->query->get('stale')) {
-                throw new \Exception('Missing stale from YouTube request');
+            if (!$requestState = $request->query->get('state')) {
+                throw new \Exception('Missing state from YouTube request');
             }
 
-            if (!$sessionStale = $session->get('stale')) {
-                throw new \Exception('Missing stale from YouTube session');
+            if (!$sessionState = $session->get('state')) {
+                throw new \Exception('Missing state from YouTube session');
             }
 
-            if (strval($requestStale) !== strval($sessionStale)) {
-                throw new \Exception('YouTube session stale and request stale don\'t match');
+            if (strval($requestState) !== strval($sessionState)) {
+                throw new \Exception('YouTube session state and request state don\'t match');
             }
 
             $google->authenticate($code);
@@ -129,6 +138,10 @@ class YouTubeAdapter extends AbstractAdapter implements Adapter
             throw new \Exception('YouTube adapter only handles video assets');
         }
 
+        if ($video_id = $this->retrieve($asset)) {
+            return;
+        }
+
         $youtube = $this->getClient();
 
         $client = $youtube->getClient();
@@ -159,7 +172,8 @@ class YouTubeAdapter extends AbstractAdapter implements Adapter
     public function update(Asset $asset)
     {
         if (!$video_id = $this->retrieve($asset)) {
-            throw new \Exception('Asset is unknown to YouTube');
+            $this->upload($asset);
+            return;
         }
 
         $youtube = $this->getClient();
@@ -167,7 +181,7 @@ class YouTubeAdapter extends AbstractAdapter implements Adapter
         $resource = $this->getResource($asset);
         $resource->setId($video_id);
 
-        $youtube->videos->update('snippet', $resource);
+        $youtube->videos->update('status,snippet', $resource);
     }
 
     /**
@@ -183,6 +197,21 @@ class YouTubeAdapter extends AbstractAdapter implements Adapter
         $youtube->videos->delete($video_id);
 
         $this->forget($asset);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function retrieve(Asset $asset)
+    {
+        if (!$video_id = parent::retrieve($asset)) {
+            return null;
+        }
+
+        $youtube = $this->getClient();
+        $videos = $youtube->videos->listVideos('snippet', ['id' => $video_id]);
+
+        return count($videos) ? $video_id : null;
     }
 
     /**

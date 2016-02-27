@@ -126,12 +126,6 @@ abstract class AbstractAdapter
     }
 
     /**
-     *
-     * @return void
-     */
-    abstract protected function authenticate();
-
-    /**
      * Maps an Asset to a Provider resource identifier
      *
      * @param Asset $asset

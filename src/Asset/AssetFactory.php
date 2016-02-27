@@ -16,13 +16,14 @@ class AssetFactory
     /**
      *
      * @param $file
-     * @param $title
-     * @param string $description
+     * @param null $title
+     * @param null $description
      * @param array $tags
+     * @param null $category
      * @return Audio|Document|Image|Video
      * @throws \Exception
      */
-    public static function build($file, $title = null, $description = null, array $tags = [])
+    public static function build($file, $title = null, $description = null, array $tags = [], $category = null)
     {
         if (!$file instanceof File and is_file($file)) {
             $local = new Filesystem(new Local(dirname($file)));
@@ -39,6 +40,7 @@ class AssetFactory
         $asset->setTitle($title);
         $asset->setDescription($description);
         $asset->setTags($tags);
+        $asset->setCategory($category);
 
         return $asset;
     }

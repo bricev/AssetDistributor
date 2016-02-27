@@ -79,7 +79,11 @@ abstract class AbstractAsset
      */
     public function getPath()
     {
-        return $this->file->getPath();
+        $filesystem = $this->file->getFilesystem(); /** @var \League\Flysystem\Filesystem $filesystem  */
+
+        $filesystemAdapter = $filesystem->getAdapter(); /** @var \League\Flysystem\Adapter\AbstractAdapter $filesystemAdapter */
+
+        return $filesystemAdapter->applyPathPrefix($this->file->getPath());
     }
 
     /**

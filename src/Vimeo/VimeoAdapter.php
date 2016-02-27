@@ -7,6 +7,7 @@ use Libcast\AssetDistributor\Adapter\Adapter;
 use Libcast\AssetDistributor\Asset\Asset;
 use Libcast\AssetDistributor\Asset\Video;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Session\Session;
 use Vimeo\Vimeo;
 
 class VimeoAdapter extends AbstractAdapter implements Adapter
@@ -38,9 +39,16 @@ class VimeoAdapter extends AbstractAdapter implements Adapter
 
         if ($token = $this->getCredentials()) {
             $client->setToken($token);
+            $this->isAuthenticated = true;
         }
 
-        return $this->client = $client;
+        $this->client = $client; // Now getClient() returns \Vimeo\Vimeo
+
+        if (!$this->isAuthenticated()) {
+            $this->authenticate();
+        }
+
+        return $this->client;
     }
 
     /**
@@ -50,19 +58,19 @@ class VimeoAdapter extends AbstractAdapter implements Adapter
     {
         $client = $this->getClient();
         $request = Request::createFromGlobals();
-        $session = $request->getSession();
+        $session = new Session;
 
         if ($code = $request->query->get('code')) {
-            if (!$requestStale = $request->query->get('stale')) {
-                throw new \Exception('Missing stale from Vimeo request');
+            if (!$requestState = $request->query->get('state')) {
+                throw new \Exception('Missing state from Vimeo request');
             }
 
-            if (!$sessionStale = $session->get('stale')) {
-                throw new \Exception('Missing stale from Vimeo session');
+            if (!$sessionState = $session->get('state')) {
+                throw new \Exception('Missing state from Vimeo session');
             }
 
-            if (strval($requestStale) !== strval($sessionStale)) {
-                throw new \Exception('Vimeo session stale and request stale don\'t match');
+            if (strval($requestState) !== strval($sessionState)) {
+                throw new \Exception('Vimeo session state and request state don\'t match');
             }
 
             $request = $client->accessToken($code, $this->getConfiguration('redirectUri'));
@@ -108,6 +116,11 @@ class VimeoAdapter extends AbstractAdapter implements Adapter
     {
         if (!self::support($asset)) {
             throw new \Exception('Vimeo adapter only handles video assets');
+        }
+
+        if ($video = $this->retrieve($asset)) {
+            $this->update($asset);
+            return;
         }
 
         $uri = $this->getClient()->upload($asset->getPath());
