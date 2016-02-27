@@ -1,6 +1,9 @@
 AssetDistributor
 ================
 
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/bricev/AssetDistributor/badges/quality-score.png?b=v2)](https://scrutinizer-ci.com/g/bricev/AssetDistributor/?branch=v2)
+[![Build Status](https://scrutinizer-ci.com/g/bricev/AssetDistributor/badges/build.png?b=v2)](https://scrutinizer-ci.com/g/bricev/AssetDistributor/build-status/v2)
+
 AssetDistributor is a PHP component that can publish digital assets (video, audio...) across multiple services.
 
 Currently, AssetDistributor can publish videos across YouTube, Vimeo and DailyMotion.
