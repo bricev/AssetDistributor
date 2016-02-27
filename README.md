@@ -52,7 +52,6 @@ $asset->setVisibility('private');
 
 You may create an `AdapterCollection` manually:
 ```php
-
 /** @var string $configPath Path to the PHP configuration file */
 
 $adapters = new AdapterCollection;
