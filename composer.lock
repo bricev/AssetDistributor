@@ -4,8 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "045992b4cdf050c696031f9275cfe22d",
-    "content-hash": "7b3ccf68074c13c930ec18926834fbde",
+    "hash": "2de02effcf7fda1aa15447c4ba033060",
+    "content-hash": "a805aa49a5560ed11e141105b978f209",
     "packages": [
         {
             "name": "dailymotion/sdk",
@@ -1276,8 +1276,6 @@
     },
     "prefer-stable": false,
     "prefer-lowest": false,
-    "platform": {
-        "php": ">=5.4.0"
-    },
+    "platform": [],
     "platform-dev": []
 }
