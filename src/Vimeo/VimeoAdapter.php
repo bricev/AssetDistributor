@@ -118,7 +118,7 @@ class VimeoAdapter extends AbstractAdapter implements Adapter
             throw new \Exception('Vimeo adapter only handles video assets');
         }
 
-        if ($video = $this->retrieve($asset)) {
+        if (!is_null($this->retrieve($asset))) {
             $this->update($asset);
             return;
         }
