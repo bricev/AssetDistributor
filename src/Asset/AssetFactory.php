@@ -2,7 +2,9 @@
 
 namespace Libcast\AssetDistributor\Asset;
 
+use League\Flysystem\Adapter\Local;
 use League\Flysystem\File;
+use League\Flysystem\Filesystem;
 
 class AssetFactory
 {
@@ -13,15 +15,20 @@ class AssetFactory
 
     /**
      *
-     * @param File $file
+     * @param $file
      * @param $title
      * @param string $description
      * @param array $tags
      * @return Audio|Document|Image|Video
      * @throws \Exception
      */
-    public static function build(File $file, $title, $description = '', array $tags = [])
+    public static function build($file, $title = null, $description = null, array $tags = [])
     {
+        if (!$file instanceof File and is_file($file)) {
+            $local = new Filesystem(new Local(dirname($file)));
+            $file = new File($local, basename($file));
+        }
+
         if (!$type = self::guessType($file->getMimetype())) {
             throw new \Exception('This file is not supported');
         }

@@ -42,6 +42,24 @@ class Owner
 
     /**
      *
+     * @return string
+     */
+    public function getIdentifier()
+    {
+        return $this->identifier;
+    }
+
+    /**
+     *
+     * @return AdapterCollection
+     */
+    public function getAdapters()
+    {
+        return $this->adapters;
+    }
+
+    /**
+     *
      * @param AdapterCollection $adapters
      */
     public function setAdapters(AdapterCollection $adapters)
@@ -117,10 +135,11 @@ class Owner
      */
     public function setAccount($vendor, $credentials)
     {
-        if (!$accounts = $this->getAccounts()) {
+        if (!$this->cache) {
             return;
         }
 
+        $accounts = $this->getAccounts();
         $accounts[$vendor] = $credentials;
 
         $this->cache->save($this->identifier, $accounts);
@@ -129,15 +148,15 @@ class Owner
     /**
      *
      * @param $identifier
-     * @param Configuration $configuration
+     * @param $configurationPath
      * @param Cache $cache
      * @return Owner
      */
-    public static function retrieveFromCache($identifier, Configuration $configuration, Cache $cache)
+    public static function retrieveFromCache($identifier, $configurationPath, Cache $cache)
     {
         $owner = new self($identifier, $cache);
 
-        if ($adapters = AdapterCollection::retrieveFromCache($owner, $configuration)) {
+        if ($adapters = AdapterCollection::retrieveFromCache($owner, $configurationPath)) {
             $owner->setAdapters($adapters);
         }
 

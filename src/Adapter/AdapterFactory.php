@@ -18,7 +18,7 @@ class AdapterFactory
     {
         $class = self::getClassName($vendor);
 
-        return $class($owner, $configurationPath);
+        return new $class($owner, $configurationPath);
     }
 
     /**

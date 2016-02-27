@@ -56,12 +56,7 @@ abstract class AbstractAdapter
         }
 
         // Register Vendor shared configurations
-        CategoryRegistry::addVendorCategories($this->getVendor(), $configuration->getCategoryMap());
-
-        // Adapters only work with authenticated accounts
-        if (!$this->isAuthenticated()) {
-            $this->authenticate();
-        }
+        CategoryRegistry::addVendorCategories($this->getVendor(), $this->configuration->getCategoryMap());
     }
 
     /**

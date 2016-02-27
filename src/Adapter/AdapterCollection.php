@@ -6,7 +6,7 @@ use Libcast\AssetDistributor\Asset\Asset;
 use Libcast\AssetDistributor\Configuration\ConfigurationFactory;
 use Libcast\AssetDistributor\Owner;
 
-class AdapterCollection extends \ArrayIterator implements Adapter
+class AdapterCollection extends \ArrayIterator
 {
     /**
      *
@@ -92,7 +92,7 @@ class AdapterCollection extends \ArrayIterator implements Adapter
 
         $vendors = ConfigurationFactory::getVendors($configurationPath);
         foreach ($vendors as $vendor) {
-            $class = AdapterFactory::getClassName($vendor);
+            $class = AdapterFactory::getClassName($vendor); /** @var Adapter $class */
 
             if (!$class::support($asset)) {
                 continue;
