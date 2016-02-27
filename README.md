@@ -61,12 +61,12 @@ $adapters[] = new VimeoAdapter($owner, $configPath);
 
 You also can retrieve the `AdapterCollection` from the cache:
 ```php
-$adapters = AdapterCollection::buildForAsset($asset, $owner, $configPath);
+$adapters = AdapterCollection::retrieveFromCache($owner, $configPath);
 ```
 
 Or you can create an `AdapterCollection` based on the `Asset` :
 ```php
-$adapters = AdapterCollection::retrieveFromCache($owner, $configPath);
+$adapters = AdapterCollection::buildForAsset($asset, $owner, $configPath);
 ```
 
 Once created, the `AdapterCollection` must be affiliated to the `Owner`
