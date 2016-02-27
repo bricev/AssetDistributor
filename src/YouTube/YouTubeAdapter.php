@@ -96,7 +96,6 @@ class YouTubeAdapter extends AbstractAdapter implements Adapter
             $google->authenticate($code);
 
             $session->set('token', $google->getAccessToken());
-//            $this->redirect($this->getConfiguration('redirectUri'));
         }
 
         if ($token = $session->get('token')) {
@@ -138,7 +137,7 @@ class YouTubeAdapter extends AbstractAdapter implements Adapter
             throw new \Exception('YouTube adapter only handles video assets');
         }
 
-        if ($video_id = $this->retrieve($asset)) {
+        if ($this->retrieve($asset)) {
             return;
         }
 
