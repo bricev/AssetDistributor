@@ -10,8 +10,7 @@
         "league/flysystem": "~1.0",
         "dailymotion/sdk": "~1.6",
         "google/apiclient": "v2.0.0-RC5",
-        "vimeo/vimeo-api": "~1.2",
-        "php": ">=5.4.0"
+        "vimeo/vimeo-api": "~1.2"
     },
     "require-dev": {
         "monolog/monolog": "~1.0",
