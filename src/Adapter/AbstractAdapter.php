@@ -45,7 +45,7 @@ abstract class AbstractAdapter
      * @param mixed $configuration
      * @param Owner $owner
      */
-    function __construct(Owner $owner, $configuration)
+    public function __construct(Owner $owner, $configuration)
     {
         $this->owner = $owner;
 

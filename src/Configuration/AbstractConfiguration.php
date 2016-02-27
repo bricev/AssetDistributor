@@ -16,7 +16,7 @@ abstract class AbstractConfiguration
      *
      * @param array $configuration
      */
-    function __construct(array $configuration)
+    public function __construct(array $configuration)
     {
         if (!isset($configuration['redirectUri'])) {
             $configuration['redirectUri'] = $this->getCurrentUri();

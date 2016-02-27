@@ -33,7 +33,7 @@ class Owner
      * @param Cache $cache
      * @param array $adapters
      */
-    function __construct($identifier, Cache $cache = null, array $adapters = [])
+    public function __construct($identifier, Cache $cache = null, array $adapters = [])
     {
         $this->identifier = $identifier;
         $this->adapters = new AdapterCollection($adapters);
