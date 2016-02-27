@@ -26,7 +26,7 @@ $asset = AssetFactory::build(
 $asset->setVisibility('private');
 
 // Create a collection of Adapters that will manage the Asset with Owner credentials
-$adapters = AdapterCollection::retrieveFromCache($owner, $configPath);
+$adapters = AdapterCollection::buildForAsset($asset, $owner, $configPath);
 $adapters[] = new YouTubeAdapter($owner, $configPath);
 $adapters[] = new VimeoAdapter($owner, $configPath);
 

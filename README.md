@@ -59,7 +59,7 @@ $adapters[] = new YouTubeAdapter($owner, $configPath);
 $adapters[] = new VimeoAdapter($owner, $configPath);
 ```
 
-Or you can retrieve the `AdapterCollection` from the cache:
+You also can retrieve the `AdapterCollection` from the cache:
 ```php
 $adapters = AdapterCollection::buildForAsset($asset, $owner, $configPath);
 ```
