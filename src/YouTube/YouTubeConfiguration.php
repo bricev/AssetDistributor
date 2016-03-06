@@ -4,13 +4,14 @@ namespace Libcast\AssetDistributor\YouTube;
 
 use Libcast\AssetDistributor\Configuration\AbstractConfiguration;
 use Libcast\AssetDistributor\Configuration\Configuration;
+use Psr\Log\LoggerInterface;
 
 class YouTubeConfiguration extends AbstractConfiguration implements Configuration
 {
     /**
      * {@inheritdoc}
      */
-    public function __construct(array $configuration)
+    public function __construct(array $configuration, LoggerInterface $logger = null)
     {
         $configuration = array_merge($configuration, [
             'access_type' => 'offline',
@@ -21,7 +22,7 @@ class YouTubeConfiguration extends AbstractConfiguration implements Configuratio
             ],
         ]);
 
-        parent::__construct($configuration);
+        parent::__construct($configuration, $logger);
     }
 
     /**

@@ -4,19 +4,20 @@ namespace Libcast\AssetDistributor\Vimeo;
 
 use Libcast\AssetDistributor\Configuration\AbstractConfiguration;
 use Libcast\AssetDistributor\Configuration\Configuration;
+use Psr\Log\LoggerInterface;
 
 class VimeoConfiguration extends AbstractConfiguration implements Configuration
 {
     /**
      * {@inheritdoc}
      */
-    public function __construct(array $configuration)
+    public function __construct(array $configuration, LoggerInterface $logger = null)
     {
         $configuration = array_merge($configuration, [
-            'scopes' => ['upload', 'create', 'edit', 'delete'],
+            'scopes' => ['public', 'private', 'upload', 'create', 'edit', 'delete'],
         ]);
 
-        parent::__construct($configuration);
+        parent::__construct($configuration, $logger);
     }
 
     /**

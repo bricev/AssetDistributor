@@ -2,10 +2,14 @@
 
 namespace Libcast\AssetDistributor\Configuration;
 
-use Symfony\Component\HttpFoundation\Request;
+use Libcast\AssetDistributor\LoggerTrait;
+use Libcast\AssetDistributor\Request;
+use Psr\Log\LoggerInterface;
 
 abstract class AbstractConfiguration
 {
+    use LoggerTrait;
+
     /**
      *
      * @var array
@@ -16,13 +20,14 @@ abstract class AbstractConfiguration
      *
      * @param array $configuration
      */
-    public function __construct(array $configuration)
+    public function __construct(array $configuration, LoggerInterface $logger = null)
     {
         if (!isset($configuration['redirectUri'])) {
             $configuration['redirectUri'] = $this->getCurrentUri();
         }
 
         $this->configuration = $configuration;
+        $this->logger = $logger;
     }
 
     /**
@@ -51,13 +56,15 @@ abstract class AbstractConfiguration
      */
     protected function getCurrentUri()
     {
-        $request = Request::createFromGlobals();
+        $request = Request::get();
 
-        $url = sprintf('%s://%s%s',
+        $uri = sprintf('%s://%s%s',
             $request->getScheme(),
             $request->getHttpHost(),
             $request->getBaseUrl());
 
-        return filter_var($url, FILTER_SANITIZE_URL);
+        $this->debug('Build current URI', ['uri' => $uri]);
+
+        return filter_var($uri, FILTER_SANITIZE_URL);
     }
 }

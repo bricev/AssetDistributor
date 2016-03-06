@@ -2,6 +2,8 @@
 
 namespace Libcast\AssetDistributor\Configuration;
 
+use Psr\Log\LoggerInterface;
+
 class ConfigurationFactory
 {
     /**
@@ -11,7 +13,7 @@ class ConfigurationFactory
      * @return Configuration
      * @throws \Exception
      */
-    public static function build($vendor, $path)
+    public static function build($vendor, $path, LoggerInterface $logger = null)
     {
         if (!$configuration = parse_ini_file($path, true)) {
             throw new \Exception("File '$path' is not a valid PHP configuration file");
@@ -26,7 +28,7 @@ class ConfigurationFactory
             throw new \Exception("Missing configuration class for $vendor");
         }
 
-        return new $class($configuration[$vendor]);
+        return new $class($configuration[$vendor], $logger);
     }
 
     /**
