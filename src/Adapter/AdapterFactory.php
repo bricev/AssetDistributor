@@ -3,6 +3,7 @@
 namespace Libcast\AssetDistributor\Adapter;
 
 use Libcast\AssetDistributor\Owner;
+use Psr\Log\LoggerInterface;
 
 class AdapterFactory
 {
@@ -14,11 +15,11 @@ class AdapterFactory
      * @return Adapter
      * @throws \Exception
      */
-    public static function build($vendor, Owner $owner, $configurationPath)
+    public static function build($vendor, Owner $owner, $configurationPath, LoggerInterface $logger = null)
     {
         $class = self::getClassName($vendor);
 
-        return new $class($owner, $configurationPath);
+        return new $class($owner, $configurationPath, $logger);
     }
 
     /**

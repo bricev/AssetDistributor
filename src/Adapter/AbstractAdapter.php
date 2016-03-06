@@ -6,10 +6,14 @@ use Libcast\AssetDistributor\Asset\Asset;
 use Libcast\AssetDistributor\Configuration\CategoryRegistry;
 use Libcast\AssetDistributor\Configuration\Configuration;
 use Libcast\AssetDistributor\Configuration\ConfigurationFactory;
+use Libcast\AssetDistributor\LoggerTrait;
 use Libcast\AssetDistributor\Owner;
+use Psr\Log\LoggerInterface;
 
 abstract class AbstractAdapter
 {
+    use LoggerTrait;
+
     /**
      *
      * @var mixed
@@ -45,15 +49,17 @@ abstract class AbstractAdapter
      * @param mixed $configuration
      * @param Owner $owner
      */
-    public function __construct(Owner $owner, $configuration)
+    public function __construct(Owner $owner, $configuration, LoggerInterface $logger = null)
     {
         $this->owner = $owner;
 
         if ($configuration instanceof Configuration) {
             $this->configuration = $configuration;
         } else {
-            $this->configuration = ConfigurationFactory::build($this->getVendor(), $configuration);
+            $this->configuration = ConfigurationFactory::build($this->getVendor(), $configuration, $logger);
         }
+
+        $this->logger = $logger;
 
         // Register Vendor shared configurations
         CategoryRegistry::addVendorCategories($this->getVendor(), $this->configuration->getCategoryMap());
@@ -103,6 +109,11 @@ abstract class AbstractAdapter
             return null;
         }
 
+        $this->debug('Get service credentials from Owner', [
+            'vendor' => $this->getVendor(),
+            'credentials' => $credentials,
+        ]);
+
         return $this->credentials = $credentials;
     }
 
@@ -114,6 +125,12 @@ abstract class AbstractAdapter
     {
         $this->credentials = $credentials;
         $this->owner->setAccount($this->getVendor(), $credentials);
+
+        $this->debug('Save credentials', [
+            'owner' => $this->owner->getIdentifier(),
+            'vendor' => $this->getVendor(),
+            'credentials' => $credentials,
+        ]);
     }
 
     /**
@@ -139,6 +156,12 @@ abstract class AbstractAdapter
 
         $map[$this->getVendor()] = $identifier;
 
+        $this->debug('Remember Asset identifier from vendor', [
+            'asset' => (string) $asset,
+            'vendor' => $this->getVendor(),
+            'identifier' => $identifier,
+        ]);
+
         $this->getCache()->save((string) $asset, $map);
     }
 
@@ -154,7 +177,15 @@ abstract class AbstractAdapter
             return null;
         }
 
-        return isset($map[$this->getVendor()]) ? $map[$this->getVendor()] : null;
+        $identifier = isset($map[$this->getVendor()]) ? $map[$this->getVendor()] : null;
+
+        $this->debug('Retrieve Asset identifier from vendor', [
+            'asset' => (string) $asset,
+            'vendor' => $this->getVendor(),
+            'identifier' => $identifier,
+        ]);
+
+        return $identifier;
     }
 
     /**
@@ -172,6 +203,11 @@ abstract class AbstractAdapter
             unset($map[$this->getVendor()]);
         }
 
+        $this->debug('Forget Asset from vendor', [
+            'asset' => (string) $asset,
+            'vendor' => $this->getVendor(),
+        ]);
+
         $this->getCache()->save((string) $asset, $map);
     }
 
@@ -186,6 +222,8 @@ abstract class AbstractAdapter
         if ('cli' === php_sapi_name()) {
             throw new \Exception('Impossible to redirect from CLI');
         }
+
+        $this->debug('Redirect client', ['url' => $url, 'from_client' => $from_client]);
 
         if ($from_client or headers_sent()) {
             echo sprintf('<noscript><meta http-equiv="refresh" content="0; url=%1$s" /></noscript><script type="text/javascript">  window.location.href="%1$s"; </script><a href="%1$s">%1$s</a>', $url);

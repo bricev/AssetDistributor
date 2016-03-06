@@ -6,7 +6,7 @@ use Libcast\AssetDistributor\Adapter\AbstractAdapter;
 use Libcast\AssetDistributor\Adapter\Adapter;
 use Libcast\AssetDistributor\Asset\Asset;
 use Libcast\AssetDistributor\Asset\Video;
-use Symfony\Component\HttpFoundation\Request;
+use Libcast\AssetDistributor\Request;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Vimeo\Vimeo;
 
@@ -57,7 +57,7 @@ class VimeoAdapter extends AbstractAdapter implements Adapter
     public function authenticate()
     {
         $client = $this->getClient();
-        $request = Request::createFromGlobals();
+        $request = Request::get();
         $session = new Session;
 
         if ($code = $request->query->get('code')) {
@@ -65,7 +65,7 @@ class VimeoAdapter extends AbstractAdapter implements Adapter
                 throw new \Exception('Missing state from Vimeo request');
             }
 
-            if (!$sessionState = $session->get('state')) {
+            if (!$sessionState = $session->get('vimeo_state')) {
                 throw new \Exception('Missing state from Vimeo session');
             }
 
@@ -73,19 +73,24 @@ class VimeoAdapter extends AbstractAdapter implements Adapter
                 throw new \Exception('Vimeo session state and request state don\'t match');
             }
 
-            $request = $client->accessToken($code, $this->getConfiguration('redirectUri'));
+            $this->debug('Found Vimeo oAuth code', ['code' => $code]);
+            $response = $client->accessToken($code, $this->getConfiguration('redirectUri'));
 
-            if (200 === $request['status'] and $token = $request['body']['access_token']) {
+            if (200 === $response['status'] and $token = $response['body']['access_token']) {
+                $this->debug('Found Vimeo oAuth token', ['token' => $token]);
                 $client->setToken($token);
                 $this->setCredentials($token);
             } else {
+                $this->error('Vimeo authentication failed', $response);
                 throw new \Exception('Vimeo authentication failed');
             }
         }
 
         if (!$client->getToken()) {
+            $this->debug('Missing Vimeo token, try to authenticate...');
+
             $state = mt_rand();
-            $session->set('state', $state);
+            $session->set('vimeo_state', $state);
 
             $this->redirect($client->buildAuthorizationEndpoint(
                 $this->getConfiguration('redirectUri'),
@@ -93,6 +98,13 @@ class VimeoAdapter extends AbstractAdapter implements Adapter
                 $state
             ));
         }
+
+        // Clean query parameters as they may cause error
+        // on other Adapter's authentication process
+        $request->query->set('code', null);
+        $request->query->set('state', null);
+
+        $this->debug('Vimeo account is authenticated');
 
         $this->isAuthenticated = true;
     }

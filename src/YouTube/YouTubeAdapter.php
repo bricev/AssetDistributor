@@ -10,7 +10,7 @@ use Libcast\AssetDistributor\Adapter\AbstractAdapter;
 use Libcast\AssetDistributor\Adapter\Adapter;
 use Libcast\AssetDistributor\Asset\Asset;
 use Libcast\AssetDistributor\Asset\Video;
-use Symfony\Component\HttpFoundation\Request;
+use Libcast\AssetDistributor\Request;
 use Symfony\Component\HttpFoundation\Session\Session;
 
 class YouTubeAdapter extends AbstractAdapter implements Adapter
@@ -77,7 +77,7 @@ class YouTubeAdapter extends AbstractAdapter implements Adapter
     public function authenticate()
     {
         $google = $this->getClient()->getClient();
-        $request = Request::createFromGlobals();
+        $request = Request::get();
         $session = new Session;
 
         if ($code = $request->query->get('code')) {
@@ -85,7 +85,7 @@ class YouTubeAdapter extends AbstractAdapter implements Adapter
                 throw new \Exception('Missing state from YouTube request');
             }
 
-            if (!$sessionState = $session->get('state')) {
+            if (!$sessionState = $session->get('youtube_state')) {
                 throw new \Exception('Missing state from YouTube session');
             }
 
@@ -93,12 +93,14 @@ class YouTubeAdapter extends AbstractAdapter implements Adapter
                 throw new \Exception('YouTube session state and request state don\'t match');
             }
 
+            $this->debug('Found YouTube oAuth code', ['code' => $code]);
             $google->authenticate($code);
 
-            $session->set('token', $google->getAccessToken());
+            $session->set('youtube_token', $google->getAccessToken());
         }
 
-        if ($token = $session->get('token')) {
+        if ($token = $session->get('youtube_token')) {
+            $this->debug('Found YouTube oAuth token', ['token' => $token]);
             $google->setAccessToken($token);
         }
 
@@ -106,12 +108,21 @@ class YouTubeAdapter extends AbstractAdapter implements Adapter
             $this->accessToken = $accessToken;
             $this->setCredentials($accessToken);
         } else {
+            $this->debug('Missing YouTube token, try to authenticate...');
+
             $state = mt_rand();
             $google->setState($state);
-            $session->set('state', $state);
+            $session->set('youtube_state', $state);
 
             $this->redirect($google->createAuthUrl());
         }
+
+        // Clean query parameters as they may cause error
+        // on other Adapter's authentication process
+        $request->query->set('code', null);
+        $request->query->set('state', null);
+
+        $this->debug('YouTube account is authenticated');
 
         $this->isAuthenticated = true;
     }

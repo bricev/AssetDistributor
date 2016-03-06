@@ -6,7 +6,8 @@ use Libcast\AssetDistributor\Adapter\AbstractAdapter;
 use Libcast\AssetDistributor\Adapter\Adapter;
 use Libcast\AssetDistributor\Asset\Asset;
 use Libcast\AssetDistributor\Asset\Video;
-use Dailymotion;
+use Libcast\AssetDistributor\Dailymotion\Dailymotion;
+use Libcast\AssetDistributor\Request;
 
 class DailymotionAdapter extends AbstractAdapter implements Adapter
 {
@@ -36,8 +37,8 @@ class DailymotionAdapter extends AbstractAdapter implements Adapter
             return $this->client;
         }
 
-        $client = new Dailymotion();
-        $client->setGrantType(
+        $this->client = new Dailymotion;
+        $this->client->setGrantType(
             Dailymotion::GRANT_TYPE_AUTHORIZATION,
             $this->getConfiguration('key'),
             $this->getConfiguration('secret'),
@@ -45,10 +46,14 @@ class DailymotionAdapter extends AbstractAdapter implements Adapter
         );
 
         if ($session = $this->getCredentials()) {
-            $client->setSession($session);
+            $this->client->setSession($session);
         }
 
-        return $this->client = $client;
+        if (!$this->isAuthenticated()) {
+            $this->authenticate();
+        }
+
+        return $this->client;
     }
 
     /**
@@ -60,11 +65,21 @@ class DailymotionAdapter extends AbstractAdapter implements Adapter
 
         try {
             $client->getAccessToken();
+            $this->setCredentials($client->getSession());
+
         } catch (\DailymotionAuthRequiredException $e) {
+            $this->debug('Missing Dailymotion token, try to authenticate...');
             $this->redirect($client->getAuthorizationUrl());
         }
 
         $this->setCredentials($client->getSession());
+
+        // Clean query parameters as they may cause error
+        // on other Adapter's authentication process
+        $request = Request::get();
+        $request->query->set('code', null);
+
+        $this->debug('Dailymotion account is authenticated');
 
         $this->isAuthenticated = true;
     }
