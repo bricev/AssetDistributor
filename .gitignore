@@ -1,2 +1,5 @@
 /.idea
+/example/cache/*
+!/example/cache/.gitkeep
+/example/configuration.ini
 /vendor
