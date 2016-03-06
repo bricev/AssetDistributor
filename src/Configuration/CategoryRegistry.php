@@ -32,8 +32,7 @@ class CategoryRegistry
             return null;
         }
 
-        $categoryVendors= self::$categories[$category];
-
+        $categoryVendors = self::$categories[$category];
         if (isset($categoryVendors[$vendor]) and $id = $categoryVendors[$vendor]) {
             return $id;
         }
