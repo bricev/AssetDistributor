@@ -1,7 +1,5 @@
+/.idea
+/example/cache/*
+!/example/cache/.gitkeep
+/example/configuration.ini
 /vendor
-/composer.phar
-/composer.lock
-*.log
-*.ini
-/*.htaccess
-/*.php

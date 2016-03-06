@@ -1,19 +1,25 @@
 {
-    "name": "libcast/assetdistribution",
+    "name": "libcast/assetdistributor",
     "type": "library",
     "description": "PHP component that uploads and manage media from remote social/content platform. Currently handle video for YouTube.",
     "homepage": "http://libcast.com",
     "license": "MIT",
     "require": {
-        "php": ">=5.3.0",
-        "symfony/http-foundation": "2.3.*"
+        "symfony/http-foundation": "~3.0",
+        "doctrine/cache": "~1.0",
+        "league/flysystem": "~1.0",
+        "dailymotion/sdk": "~1.6",
+        "google/apiclient": "v2.0.0-RC5",
+        "vimeo/vimeo-api": "~1.2",
+        "psr/log": "~1.0"
     },
     "require-dev": {
-        "monolog/monolog": "1.4.0",
-        "phpunit/phpunit": "3.7.*",
-        "sami/sami": "dev-master"
+        "monolog/monolog": "~1.0",
+        "phpunit/phpunit": "~3.7"
     },
     "autoload": {
-        "psr-0": {"Libcast": "src/"}
+        "psr-4": {
+            "Libcast\\AssetDistributor\\": "src"
+        }
     }
 }
