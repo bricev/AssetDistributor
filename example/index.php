@@ -25,12 +25,12 @@ $owner = new Owner('johndoe', new Cache("$root/example/cache"));
 
 // Create an Asset
 $asset = AssetFactory::build(
-    "$root/tests/video.mp4",        // path to file of a Flysystem\File object
+    "$root/tests/video.mp4",        // path to file, or a Flysystem\File object
     'My Video',                     // optional title
     'This is an awesome video',     // optional description
     ['test', 'asset-distributor']   // optional array of tags
 );
-$asset->setVisibility('private');
+$asset->setVisibility('private');   // Make video private (public by default)
 
 // Create a collection of Adapters that will manage the Asset with Owner credentials
 $adapters = new AdapterCollection;
