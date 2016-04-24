@@ -4,6 +4,7 @@
     "description": "PHP component that can publish digital assets (video, audio...) across multiple services. Currently supports YouTube, Vimeo and Dailymotion.",
     "homepage": "http://libcast.com",
     "license": "MIT",
+    "minimum-stability": "dev",
     "require": {
         "symfony/http-foundation": "~3.0",
         "doctrine/cache": "~1.0",
